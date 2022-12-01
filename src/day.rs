@@ -25,8 +25,9 @@ pub trait Day {
 
 pub struct Utils;
 
+#[allow(unused)]
 impl Utils {
-    pub fn numbers<'a>(input: &'a mut dyn io::Read) -> impl Iterator<Item = BoxResult<i64>> + 'a {
+    pub fn numbers(input: &mut dyn io::Read) -> impl Iterator<Item = BoxResult<i64>> + '_ {
         let lines = io::BufReader::new(input).lines();
         lines.map(|rs| {
             rs.map_err(|e| e.into())
@@ -34,10 +35,10 @@ impl Utils {
         })
     }
 
-    pub fn numbers2<'a>(
-        input: &'a mut dyn io::Read,
+    pub fn numbers2(
+        input: &mut dyn io::Read,
         radix: u32,
-    ) -> impl Iterator<Item = BoxResult<i64>> + 'a {
+    ) -> impl Iterator<Item = BoxResult<i64>> + '_ {
         let lines = io::BufReader::new(input).lines();
         lines.map(move |rs| {
             rs.map_err(|e| e.into())

@@ -1,6 +1,6 @@
 //#[macro_use]
 extern crate closure;
-#[macro_use]
+//#[macro_use]
 extern crate lazy_static;
 extern crate nalgebra as na;
 //#[macro_use]
@@ -58,7 +58,7 @@ fn main() {
     ];
     let inputs = days.iter().map(|day| format!("{}{}", prefix, day.tag()));
     for day in days.iter().zip(inputs).rev() {
-        if args.len() > 2 && &args[2] != day.0.tag() {
+        if args.len() > 2 && args[2] != day.0.tag() {
             continue;
         }
         let input: Box<dyn Fn() -> Box<dyn io::Read>> =

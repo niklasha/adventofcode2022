@@ -1,5 +1,4 @@
 use crate::day::*;
-use itertools::Itertools;
 
 pub struct Day01 {}
 
@@ -20,8 +19,8 @@ impl Day for Day01 {
 }
 
 impl Day01 {
-    fn part1_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
+    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        let lines = io::BufReader::new(input).lines();
         let v = lines.collect::<Vec<_>>();
         let v = v.split(|l| (*l).as_ref().unwrap().is_empty());
         let v = v.map(|v| {
@@ -33,8 +32,8 @@ impl Day01 {
         Ok(v.max().unwrap())
     }
 
-    fn part2_impl(self: &Self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut lines = io::BufReader::new(input).lines();
+    fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        let lines = io::BufReader::new(input).lines();
         let v = lines.collect::<Vec<_>>();
         let v = v.split(|l| (*l).as_ref().unwrap().is_empty());
         let mut v = v

@@ -1,6 +1,7 @@
 use crate::day::*;
 use std::io;
 
+#[allow(unused)]
 #[derive(Copy, Clone)]
 pub enum Instruction {
     Acc(i64),
@@ -8,6 +9,7 @@ pub enum Instruction {
     Nop(i64),
 }
 
+#[allow(unused)]
 #[derive(Clone)]
 pub struct Cpu {
     p: Vec<Instruction>,
@@ -16,6 +18,7 @@ pub struct Cpu {
     debug: bool,
 }
 
+#[allow(unused)]
 impl Cpu {
     pub fn from(input: &mut dyn io::Read) -> BoxResult<Self> {
         let cpu = Self {
