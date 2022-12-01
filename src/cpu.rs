@@ -1,5 +1,5 @@
-use std::io;
 use crate::day::*;
+use std::io;
 
 #[derive(Copy, Clone)]
 pub enum Instruction {
@@ -19,16 +19,22 @@ pub struct Cpu {
 impl Cpu {
     pub fn from(input: &mut dyn io::Read) -> BoxResult<Self> {
         let cpu = Self {
-            p: io::BufReader::new(input).lines().map(|r| r.map_err(|e| e.into()).and_then(|s| {
-                let (opcode, arg) = s.split_ascii_whitespace().collect_tuple().ok_or(AocError)?;
-                let arg = arg.parse()?;
-                match opcode {
-                    "acc" => Ok(Instruction::Acc(arg)),
-                    "jmp" => Ok(Instruction::Jmp(arg)),
-                    "nop" => Ok(Instruction::Nop(arg)),
-                    _ => Err(AocError.into())
-                }
-            })).collect::<BoxResult<Vec<Instruction>>>()?,
+            p: io::BufReader::new(input)
+                .lines()
+                .map(|r| {
+                    r.map_err(|e| e.into()).and_then(|s| {
+                        let (opcode, arg) =
+                            s.split_ascii_whitespace().collect_tuple().ok_or(AocError)?;
+                        let arg = arg.parse()?;
+                        match opcode {
+                            "acc" => Ok(Instruction::Acc(arg)),
+                            "jmp" => Ok(Instruction::Jmp(arg)),
+                            "nop" => Ok(Instruction::Nop(arg)),
+                            _ => Err(AocError.into()),
+                        }
+                    })
+                })
+                .collect::<BoxResult<Vec<Instruction>>>()?,
             ip: 0,
             a: 0,
             debug: false,
@@ -57,13 +63,21 @@ impl Cpu {
         Ok((self.ip < self.p.len(), self.a))
     }
 
-    pub fn instruction_index<'a, F>(&'a self, predicate: F) -> impl Iterator<Item=usize> + 'a
-    where F: Fn(Instruction) -> bool + 'a {
-        self.p.iter().enumerate().filter(move |(_, &i)| predicate(i)).map(|(p, _)| p)
+    pub fn instruction_index<'a, F>(&'a self, predicate: F) -> impl Iterator<Item = usize> + 'a
+    where
+        F: Fn(Instruction) -> bool + 'a,
+    {
+        self.p
+            .iter()
+            .enumerate()
+            .filter(move |(_, &i)| predicate(i))
+            .map(|(p, _)| p)
     }
 
     pub fn patch<F>(mut self, i: usize, f: F) -> Self
-        where F: Fn(Instruction) -> Instruction {
+    where
+        F: Fn(Instruction) -> Instruction,
+    {
         self.p[i] = f(self.p[i]);
         self
     }

@@ -26,19 +26,29 @@ pub trait Day {
 pub struct Utils;
 
 impl Utils {
-    pub fn numbers<'a>(input: &'a mut dyn io::Read) -> impl Iterator<Item=BoxResult<i64>> + 'a {
+    pub fn numbers<'a>(input: &'a mut dyn io::Read) -> impl Iterator<Item = BoxResult<i64>> + 'a {
         let lines = io::BufReader::new(input).lines();
-        lines.map(|rs| rs.map_err(|e| e.into())
-            .and_then(|s| s.parse::<i64>().map_err(|e| e.into())))
+        lines.map(|rs| {
+            rs.map_err(|e| e.into())
+                .and_then(|s| s.parse::<i64>().map_err(|e| e.into()))
+        })
     }
 
-    pub fn numbers2<'a>(input: &'a mut dyn io::Read, radix: u32) -> impl Iterator<Item=BoxResult<i64>> + 'a {
+    pub fn numbers2<'a>(
+        input: &'a mut dyn io::Read,
+        radix: u32,
+    ) -> impl Iterator<Item = BoxResult<i64>> + 'a {
         let lines = io::BufReader::new(input).lines();
-        lines.map(move |rs| rs.map_err(|e| e.into())
-            .and_then(move |s| i64::from_str_radix(&s, radix).map_err(|e| e.into())))
+        lines.map(move |rs| {
+            rs.map_err(|e| e.into())
+                .and_then(move |s| i64::from_str_radix(&s, radix).map_err(|e| e.into()))
+        })
     }
 
     pub fn byte_matrix(input: &mut dyn io::Read) -> BoxResult<Vec<Vec<u8>>> {
-        io::BufReader::new(input).split(b'\n').map(|rv| rv.map_err(|e| e.into())).collect()
+        io::BufReader::new(input)
+            .split(b'\n')
+            .map(|rv| rv.map_err(|e| e.into()))
+            .collect()
     }
 }
