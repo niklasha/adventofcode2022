@@ -1,4 +1,5 @@
 use crate::day::*;
+use std::cmp::max;
 
 pub struct Day01 {}
 
@@ -21,27 +22,29 @@ impl Day for Day01 {
 impl Day01 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let lines = io::BufReader::new(input).lines();
-        let v = lines.collect::<Vec<_>>();
-        let v = v.split(|l| (*l).as_ref().unwrap().is_empty());
-        let v = v.map(|v| {
+        let v = lines.collect::<Result<Vec<_>, _>>()?;
+        let v = v.split(|l| l.is_empty());
+        v.map(|v| {
             v.iter()
-                .map(|r| (*r).as_ref().unwrap())
-                .map(|s| s.parse::<Output>().unwrap())
-                .sum::<Output>()
-        });
-        Ok(v.max().unwrap())
+                .map(|r| r.parse::<Output>().map_err(|e| e.into()))
+                .sum()
+        })
+        .try_fold(None, |m, r: Result<_, _>| {
+            r.map(|n| Some(m.map_or(n, |m| max(m, n))))
+        })
+        .and_then(|s| s.ok_or_else(|| AocError.into()))
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let lines = io::BufReader::new(input).lines();
-        let v = lines.collect::<Vec<_>>();
-        let v = v.split(|l| (*l).as_ref().unwrap().is_empty());
+        let v = lines.collect::<Result<Vec<_>, _>>()?;
+        let v = v.split(|l| l.is_empty());
         let mut v = v
             .map(|v| {
                 v.iter()
-                    .map(|r| (*r).as_ref().unwrap())
-                    .map(|s| s.parse::<Output>().unwrap())
-                    .sum::<Output>()
+                    .map(|r| r.parse::<Output>())
+                    .sum::<Result<_, _>>()
+                    .unwrap()
             })
             .collect::<Vec<_>>();
         v.sort();
