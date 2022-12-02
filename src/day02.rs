@@ -26,35 +26,23 @@ enum Choice {
 }
 
 impl Choice {
-    fn beats(&self, opponent: &Choice) -> bool {
-        match self {
-            Choice::Rock => *opponent == Self::Scissors,
-            Choice::Paper => *opponent == Self::Rock,
-            Choice::Scissors => *opponent == Self::Paper,
-        }
+    fn beats(&self, opponent: &Self) -> bool {
+        opponent.successor() == *self
     }
 
-    fn better(&self) -> Choice {
+    fn successor(&self) -> Self {
         match self {
-            Choice::Rock => Choice::Paper,
-            Choice::Paper => Choice::Scissors,
-            Choice::Scissors => Choice::Rock,
-        }
-    }
-
-    fn worse(&self) -> Choice {
-        match self {
-            Choice::Rock => Choice::Scissors,
-            Choice::Paper => Choice::Rock,
-            Choice::Scissors => Choice::Paper,
+            Self::Rock => Self::Paper,
+            Self::Paper => Self::Scissors,
+            Self::Scissors => Self::Rock,
         }
     }
 
     fn value(&self) -> Output {
         match self {
-            Choice::Rock => 1,
-            Choice::Paper => 2,
-            Choice::Scissors => 3,
+            Self::Rock => 1,
+            Self::Paper => 2,
+            Self::Scissors => 3,
         }
     }
 }
@@ -67,10 +55,45 @@ impl TryFrom<char> for Choice {
             'A' | 'X' => Ok(Self::Rock),
             'B' | 'Y' => Ok(Self::Paper),
             'C' | 'Z' => Ok(Self::Scissors),
-            _ => {
-                println!("{}", value);
-                Err(())
-            }
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Outcome {
+    Loss,
+    Draw,
+    Win,
+}
+
+impl Outcome {
+    fn opponent(&self, choice: &Choice) -> Choice {
+        match self {
+            Self::Loss => choice.successor().successor(),
+            Self::Draw => *choice,
+            Self::Win => choice.successor(),
+        }
+    }
+
+    fn value(&self) -> Output {
+        match self {
+            Self::Loss => 0,
+            Self::Draw => 3,
+            Self::Win => 6,
+        }
+    }
+}
+
+impl TryFrom<char> for Outcome {
+    type Error = ();
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'X' => Ok(Self::Loss),
+            'Y' => Ok(Self::Draw),
+            'Z' => Ok(Self::Win),
+            _ => Err(()),
         }
     }
 }
@@ -87,14 +110,14 @@ impl Day02 {
                 let m = cs.next().unwrap();
                 let opponent = Choice::try_from(o).unwrap();
                 let me = Choice::try_from(m).unwrap();
-                let score = if opponent.beats(&me) {
-                    0
+                let outcome = if opponent.beats(&me) {
+                    Outcome::Loss
                 } else if opponent == me {
-                    3
+                    Outcome::Draw
                 } else {
-                    6
+                    Outcome::Win
                 };
-                me.value() + score
+                me.value() + outcome.value()
             })
             .sum())
     }
@@ -107,22 +130,10 @@ impl Day02 {
                 let mut cs = s.chars();
                 let o = cs.next().unwrap();
                 cs.next();
-                let result = cs.next().unwrap();
+                let outcome = Outcome::try_from(cs.next().unwrap()).unwrap();
                 let opponent = Choice::try_from(o).unwrap();
-                let me = match result {
-                    'X' => Choice::worse(&opponent),
-                    'Y' => opponent,
-                    'Z' => Choice::better(&opponent),
-                    _ => panic!("foo"),
-                };
-                let score = if opponent.beats(&me) {
-                    0
-                } else if opponent == me {
-                    3
-                } else {
-                    6
-                };
-                me.value() + score
+                let me = outcome.opponent(&opponent);
+                me.value() + outcome.value()
             })
             .sum())
     }
