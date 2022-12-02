@@ -1,4 +1,5 @@
 use crate::day::*;
+use std::str::FromStr;
 
 pub struct Day02 {}
 
@@ -53,11 +54,11 @@ impl Choice {
     }
 }
 
-impl TryFrom<&str> for Choice {
-    type Error = AocError;
+impl FromStr for Choice {
+    type Err = AocError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             "A" | "X" => Ok(Self::Rock),
             "B" | "Y" => Ok(Self::Paper),
             "C" | "Z" => Ok(Self::Scissors),
@@ -91,11 +92,11 @@ impl Outcome {
     }
 }
 
-impl TryFrom<&str> for Outcome {
-    type Error = AocError;
+impl FromStr for Outcome {
+    type Err = AocError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             "X" => Ok(Self::Loss),
             "Y" => Ok(Self::Draw),
             "Z" => Ok(Self::Win),
@@ -114,7 +115,7 @@ impl Day02 {
             .map(|r| {
                 let s = r?;
                 let mut tokens = s.split_whitespace();
-                let opponent = Choice::try_from(tokens.next().ok_or(AocError)?)?;
+                let opponent = Choice::from_str(tokens.next().ok_or(AocError)?)?;
                 let token = tokens.next().ok_or(AocError)?;
                 let (me, outcome) = f(token, &opponent)?;
                 Ok(me.value() + outcome.value())
@@ -124,14 +125,14 @@ impl Day02 {
 
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
-            let me = Choice::try_from(token)?;
+            let me = Choice::from_str(token)?;
             Ok((me, me.fight(opponent)))
         })
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
-            let outcome = Outcome::try_from(token)?;
+            let outcome = Outcome::from_str(token)?;
             Ok((outcome.opponent(opponent), outcome))
         })
     }
