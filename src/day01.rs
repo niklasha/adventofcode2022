@@ -25,24 +25,22 @@ impl Day01 {
             .lines()
             .group_by(|r| r.as_ref().map_or(false, |s| s.is_empty()))
             .into_iter()
-            .filter(|(b, _)| !*b)
-            .map(|(_, g)| {
-                g.map(|r| {
-                    r.map_err(|e| e.into())
+            .filter(|&(is_blank, _)| !is_blank)
+            .map(|(_, elf)| {
+                elf.map(|calories| {
+                    calories
+                        .map_err(|e| e.into())
                         .and_then(|s| s.parse::<Output>().map_err(|e| e.into()))
                 })
                 .sum()
             })
-            .fold(
-                None,
-                |mx: Option<Result<Output, _>>, n: Result<Output, _>| {
-                    Some(if let Some(Ok(m)) = mx {
-                        n.map(|n| max(m, n))
-                    } else {
-                        n
-                    })
-                },
-            )
+            .fold(None, |max_calories, calories: BoxResult<_>| {
+                Some(if let Some(Ok(m)) = max_calories {
+                    calories.map(|n| max(m, n))
+                } else {
+                    calories
+                })
+            })
             .unwrap_or_else(|| Err(AocError.into()))
     }
 
