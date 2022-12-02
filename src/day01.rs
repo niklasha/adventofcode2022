@@ -1,5 +1,5 @@
 use crate::day::*;
-use std::cmp::max;
+use std::iter;
 
 pub struct Day01 {}
 
@@ -20,8 +20,8 @@ impl Day for Day01 {
 }
 
 impl Day01 {
-    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        io::BufReader::new(input)
+    fn process(input: &mut dyn io::Read, window: usize) -> BoxResult<Output> {
+        Ok(io::BufReader::new(input)
             .lines()
             .group_by(|r| r.as_ref().map_or(false, |s| s.is_empty()))
             .into_iter()
@@ -35,33 +35,27 @@ impl Day01 {
                 .sum()
             })
             .try_fold(
-                None,
-                |max_calories, calories: BoxResult<_>| -> BoxResult<Option<Output>> {
-                    let calories = calories?;
-                    Ok(Some(if let Some(m) = max_calories {
-                        max(m, calories)
-                    } else {
-                        calories
-                    }))
+                Vec::new(),
+                |max_calories, calories: BoxResult<_>| -> BoxResult<Vec<Output>> {
+                    Ok(max_calories
+                        .into_iter()
+                        .chain(iter::once(calories?))
+                        .sorted()
+                        .rev()
+                        .take(window)
+                        .collect())
                 },
             )?
-            .ok_or_else(|| AocError.into())
+            .into_iter()
+            .sum())
+    }
+
+    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        Self::process(input, 1)
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let lines = io::BufReader::new(input).lines();
-        let v = lines.collect::<Result<Vec<_>, _>>()?;
-        let v = v.split(|l| l.is_empty());
-        let mut v = v
-            .map(|v| {
-                v.iter()
-                    .map(|r| r.parse::<Output>())
-                    .sum::<Result<_, _>>()
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
-        v.sort();
-        Ok(v.iter().rev().take(3).sum())
+        Self::process(input, 3)
     }
 }
 
