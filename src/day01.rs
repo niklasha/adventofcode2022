@@ -34,14 +34,18 @@ impl Day01 {
                 })
                 .sum()
             })
-            .fold(None, |max_calories, calories: BoxResult<_>| {
-                Some(if let Some(Ok(m)) = max_calories {
-                    calories.map(|n| max(m, n))
-                } else {
-                    calories
-                })
-            })
-            .unwrap_or_else(|| Err(AocError.into()))
+            .try_fold(
+                None,
+                |max_calories, calories: BoxResult<_>| -> BoxResult<Option<Output>> {
+                    let calories = calories?;
+                    Ok(Some(if let Some(m) = max_calories {
+                        max(m, calories)
+                    } else {
+                        calories
+                    }))
+                },
+            )?
+            .ok_or_else(|| AocError.into())
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
