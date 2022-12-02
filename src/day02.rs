@@ -132,7 +132,7 @@ impl Day02 {
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
             let outcome = Outcome::try_from(token)?;
-            Ok((outcome.opponent(&opponent), outcome))
+            Ok((outcome.opponent(opponent), outcome))
         })
     }
 }
