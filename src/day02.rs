@@ -26,8 +26,14 @@ enum Choice {
 }
 
 impl Choice {
-    fn beats(&self, opponent: &Self) -> bool {
-        opponent.successor() == *self
+    fn fight(&self, opponent: &Choice) -> Outcome {
+        if self == opponent {
+            Outcome::Draw
+        } else if *self == opponent.successor() {
+            Outcome::Win
+        } else {
+            Outcome::Loss
+        }
     }
 
     fn successor(&self) -> Self {
@@ -47,15 +53,15 @@ impl Choice {
     }
 }
 
-impl TryFrom<char> for Choice {
-    type Error = ();
+impl TryFrom<&str> for Choice {
+    type Error = AocError;
 
-    fn try_from(value: char) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            'A' | 'X' => Ok(Self::Rock),
-            'B' | 'Y' => Ok(Self::Paper),
-            'C' | 'Z' => Ok(Self::Scissors),
-            _ => Err(()),
+            "A" | "X" => Ok(Self::Rock),
+            "B" | "Y" => Ok(Self::Paper),
+            "C" | "Z" => Ok(Self::Scissors),
+            _ => Err(AocError),
         }
     }
 }
@@ -85,57 +91,50 @@ impl Outcome {
     }
 }
 
-impl TryFrom<char> for Outcome {
-    type Error = ();
+impl TryFrom<&str> for Outcome {
+    type Error = AocError;
 
-    fn try_from(value: char) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            'X' => Ok(Self::Loss),
-            'Y' => Ok(Self::Draw),
-            'Z' => Ok(Self::Win),
-            _ => Err(()),
+            "X" => Ok(Self::Loss),
+            "Y" => Ok(Self::Draw),
+            "Z" => Ok(Self::Win),
+            _ => Err(AocError),
         }
     }
 }
 
 impl Day02 {
-    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
+    fn process<F>(input: &mut dyn io::Read, f: F) -> BoxResult<Output>
+    where
+        F: Fn(&str, &Choice) -> BoxResult<(Choice, Outcome)>,
+    {
         let lines = io::BufReader::new(input).lines();
-        Ok(lines
+        lines
             .map(|r| {
-                let s = r.unwrap();
-                let mut cs = s.chars();
-                let o = cs.next().unwrap();
-                cs.next();
-                let m = cs.next().unwrap();
-                let opponent = Choice::try_from(o).unwrap();
-                let me = Choice::try_from(m).unwrap();
-                let outcome = if opponent.beats(&me) {
-                    Outcome::Loss
-                } else if opponent == me {
-                    Outcome::Draw
-                } else {
-                    Outcome::Win
-                };
-                me.value() + outcome.value()
+                let mut tokens = r?.split_whitespace();
+                let opponent = Choice::try_from(tokens.next().ok_or(AocError)?)?;
+                let token = tokens.next().ok_or(AocError)?;
+                let (me, outcome) = f(token, &opponent)?;
+                Ok(me.value() + outcome.value())
             })
-            .sum())
+            .sum()
+    }
+
+    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
+        Self::process(input, |token, opponent| {
+            let me = Choice::try_from(token)?;
+            let outcome = me.fight(opponent);
+            Ok((me, outcome))
+        })
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let lines = io::BufReader::new(input).lines();
-        Ok(lines
-            .map(|r| {
-                let s = r.unwrap();
-                let mut cs = s.chars();
-                let o = cs.next().unwrap();
-                cs.next();
-                let outcome = Outcome::try_from(cs.next().unwrap()).unwrap();
-                let opponent = Choice::try_from(o).unwrap();
-                let me = outcome.opponent(&opponent);
-                me.value() + outcome.value()
-            })
-            .sum())
+        Self::process(input, |token, opponent| {
+            let outcome = Outcome::try_from(token)?;
+            let me = outcome.opponent(&opponent);
+            Ok((me, outcome))
+        })
     }
 }
 
