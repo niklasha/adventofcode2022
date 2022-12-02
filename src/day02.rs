@@ -109,8 +109,8 @@ impl Day02 {
     where
         F: Fn(&str, &Choice) -> BoxResult<(Choice, Outcome)>,
     {
-        let lines = io::BufReader::new(input).lines();
-        lines
+        io::BufReader::new(input)
+            .lines()
             .map(|r| {
                 let s = r?;
                 let mut tokens = s.split_whitespace();
@@ -125,16 +125,14 @@ impl Day02 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
             let me = Choice::try_from(token)?;
-            let outcome = me.fight(opponent);
-            Ok((me, outcome))
+            Ok((me, me.fight(opponent)))
         })
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
             let outcome = Outcome::try_from(token)?;
-            let me = outcome.opponent(&opponent);
-            Ok((me, outcome))
+            Ok((outcome.opponent(&opponent), outcome))
         })
     }
 }
