@@ -23,15 +23,19 @@ impl Day01 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         io::BufReader::new(input)
             .lines()
-            .map(Result::unwrap)
-            .group_by(|s| s.is_empty())
+            .group_by(|r| r.as_ref().map_or(false, |s| s.is_empty()))
             .into_iter()
             .filter(|(b, _)| !*b)
-            .map(|(_, g)| g.map(|s| s.parse::<Output>()).sum())
+            .map(|(_, g)| {
+                g.map(|r| {
+                    r.map_err(|e| e.into())
+                        .and_then(|s| s.parse::<Output>().map_err(|e| e.into()))
+                })
+                .sum()
+            })
             .fold(
                 None,
                 |mx: Option<Result<Output, _>>, n: Result<Output, _>| {
-                    let n = n.map_err(|e| e.into());
                     Some(if let Some(Ok(m)) = mx {
                         n.map(|n| max(m, n))
                     } else {
