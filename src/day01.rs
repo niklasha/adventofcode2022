@@ -21,18 +21,25 @@ impl Day for Day01 {
 
 impl Day01 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let lines = io::BufReader::new(input).lines();
-        let v = lines.collect::<Result<Vec<_>, _>>()?;
-        let v = v.split(|l| l.is_empty());
-        v.map(|v| {
-            v.iter()
-                .map(|r| r.parse::<Output>().map_err(|e| e.into()))
-                .sum()
-        })
-        .try_fold(None, |m, r: Result<_, _>| {
-            r.map(|n| Some(m.map_or(n, |m| max(m, n))))
-        })
-        .and_then(|s| s.ok_or_else(|| AocError.into()))
+        io::BufReader::new(input)
+            .lines()
+            .map(Result::unwrap)
+            .group_by(|s| s.is_empty())
+            .into_iter()
+            .filter(|(b, _)| !*b)
+            .map(|(_, g)| g.map(|s| s.parse::<Output>()).sum())
+            .fold(
+                None,
+                |mx: Option<Result<Output, _>>, n: Result<Output, _>| {
+                    let n = n.map_err(|e| e.into());
+                    Some(if let Some(Ok(m)) = mx {
+                        n.map(|n| max(m, n))
+                    } else {
+                        n
+                    })
+                },
+            )
+            .unwrap_or_else(|| Err(AocError.into()))
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
