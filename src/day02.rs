@@ -112,7 +112,8 @@ impl Day02 {
         let lines = io::BufReader::new(input).lines();
         lines
             .map(|r| {
-                let mut tokens = r?.split_whitespace();
+                let s = r?;
+                let mut tokens = s.split_whitespace();
                 let opponent = Choice::try_from(tokens.next().ok_or(AocError)?)?;
                 let token = tokens.next().ok_or(AocError)?;
                 let (me, outcome) = f(token, &opponent)?;
