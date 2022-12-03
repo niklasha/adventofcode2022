@@ -22,7 +22,7 @@ impl Day03 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         io::BufReader::new(input)
             .lines()
-            .map(|rucksack| -> BoxResult<_> {
+            .map(|rucksack| {
                 let rucksack = rucksack?;
                 let (comp1, comp2) = rucksack.split_at(rucksack.len() / 2);
                 let duplicate = comp1
@@ -38,14 +38,13 @@ impl Day03 {
         io::BufReader::new(input)
             .lines()
             .tuples()
-            .map(|(sack1, sack2, sack3)| -> BoxResult<_> {
+            .map(|(sack1, sack2, sack3)| {
                 let (sack1, sack2, sack3) = (sack1?, sack2?, sack3?);
-                let badge: u8 = (sack1
+                let badge = (sack1
                     .bytes()
                     .filter(|item| sack2.bytes().contains(item))
                     .find(|item| sack3.bytes().contains(item))
-                    .ok_or_else(|| AocError.into())
-                    as BoxResult<_>)?;
+                    .ok_or_else(|| AocError.into()) as BoxResult<_>)?;
                 Ok(Self::priority(badge)?)
             })
             .sum()
