@@ -24,9 +24,7 @@ impl Day03 {
             .lines()
             .map(|rucksack| -> BoxResult<_> {
                 let rucksack = rucksack?;
-                let size = rucksack.len() / 2;
-                let comp1 = &rucksack[..size];
-                let comp2 = &rucksack[size..];
+                let (comp1, comp2) = rucksack.split_at(rucksack.len() / 2);
                 let duplicate = comp1
                     .bytes()
                     .find(|item| comp2.bytes().contains(item))
