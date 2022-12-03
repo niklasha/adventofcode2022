@@ -28,8 +28,8 @@ impl Day03 {
                 let duplicate = comp1
                     .bytes()
                     .find(|item| comp2.bytes().contains(item))
-                    .unwrap();
-                Ok(Self::priority(duplicate))
+                    .ok_or(AocError)?;
+                Ok(Self::priority(duplicate)?)
             })
             .sum()
     }
@@ -46,17 +46,17 @@ impl Day03 {
                     .find(|item| sack3.bytes().contains(item))
                     .ok_or_else(|| AocError.into())
                     as BoxResult<_>)?;
-                Ok(Self::priority(badge))
+                Ok(Self::priority(badge)?)
             })
             .sum()
     }
 
-    fn priority(item: u8) -> Output {
-        (if item.is_ascii_lowercase() {
-            1 + (item - b'a')
-        } else {
-            27 + (item - b'A')
-        }) as Output
+    fn priority(item: u8) -> Result<Output, AocError> {
+        match item {
+            b'a'..=b'z' => Ok((1 + (item - b'a')) as Output),
+            b'A'..=b'Z' => Ok((27 + (item - b'A')) as Output),
+            _ => Err(AocError),
+        }
     }
 }
 
