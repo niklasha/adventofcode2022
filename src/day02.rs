@@ -115,7 +115,7 @@ impl Day02 {
             .map(|r| {
                 let s = r?;
                 let mut tokens = s.split_whitespace();
-                let opponent = Choice::from_str(tokens.next().ok_or(AocError)?)?;
+                let opponent = tokens.next().ok_or(AocError)?.parse()?;
                 let token = tokens.next().ok_or(AocError)?;
                 let (me, outcome) = f(token, &opponent)?;
                 Ok(me.value() + outcome.value())
@@ -125,14 +125,14 @@ impl Day02 {
 
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
-            let me = Choice::from_str(token)?;
+            let me = token.parse()?;
             Ok((me, me.fight(opponent)))
         })
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         Self::process(input, |token, opponent| {
-            let outcome = Outcome::from_str(token)?;
+            let outcome = token.parse::<Outcome>()?;
             Ok((outcome.opponent(opponent), outcome))
         })
     }
