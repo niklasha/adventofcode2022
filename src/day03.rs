@@ -31,11 +31,7 @@ impl Day03 {
                     .bytes()
                     .find(|item| comp2.bytes().contains(item))
                     .unwrap();
-                Ok(if duplicate.is_ascii_lowercase() {
-                    1 + (duplicate - b'a')
-                } else {
-                    27 + (duplicate - b'A')
-                } as Output)
+                Ok(Self::priority(duplicate))
             })
             .sum()
     }
@@ -43,22 +39,26 @@ impl Day03 {
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         io::BufReader::new(input)
             .lines()
-            .map(Result::unwrap)
             .tuples()
             .map(|(sack1, sack2, sack3)| -> BoxResult<_> {
+                let (sack1, sack2, sack3) = (sack1?, sack2?, sack3?);
                 let badge: u8 = (sack1
                     .bytes()
                     .filter(|item| sack2.bytes().contains(item))
-                    .filter(|item| sack3.bytes().contains(item))
-                    .next()
-                    .ok_or(AocError.into()) as BoxResult<_>)?;
-                Ok(if badge.is_ascii_lowercase() {
-                    1 + (badge - b'a')
-                } else {
-                    27 + (badge - b'A')
-                } as Output)
+                    .find(|item| sack3.bytes().contains(item))
+                    .ok_or_else(|| AocError.into())
+                    as BoxResult<_>)?;
+                Ok(Self::priority(badge))
             })
             .sum()
+    }
+
+    fn priority(item: u8) -> Output {
+        (if item.is_ascii_lowercase() {
+            1 + (item - b'a')
+        } else {
+            27 + (item - b'A')
+        }) as Output
     }
 }
 
