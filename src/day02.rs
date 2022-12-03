@@ -131,10 +131,14 @@ impl Day02 {
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Self::process(input, |token, opponent| {
+        use std::time::*;
+        let a = SystemTime::now();
+        let r = Self::process(input, |token, opponent| {
             let outcome = token.parse::<Outcome>()?;
             Ok((outcome.opponent(opponent), outcome))
-        })
+        });
+        println!("{:?}", SystemTime::now().duration_since(a));
+        r
     }
 }
 

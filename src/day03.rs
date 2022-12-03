@@ -1,4 +1,5 @@
 use crate::day::*;
+use byte_set::ByteSet;
 
 pub struct Day03 {}
 
@@ -25,10 +26,8 @@ impl Day03 {
             .map(|rucksack| {
                 let rucksack = rucksack?;
                 let (comp1, comp2) = rucksack.split_at(rucksack.len() / 2);
-                let duplicate = comp1
-                    .bytes()
-                    .find(|item| comp2.bytes().contains(item))
-                    .ok_or(AocError)?;
+                let (comp1, comp2): (ByteSet, ByteSet) = (comp1.into(), comp2.into());
+                let duplicate = comp1.intersection(comp2).first().ok_or(AocError)?;
                 Ok(Self::priority(duplicate)?)
             })
             .sum()
@@ -39,11 +38,15 @@ impl Day03 {
             .lines()
             .tuples()
             .map(|(sack1, sack2, sack3)| {
-                let (sack1, sack2, sack3) = (sack1?, sack2?, sack3?);
+                let (sack1, sack2, sack3): (ByteSet, ByteSet, ByteSet) = (
+                    sack1?.as_str().into(),
+                    sack2?.as_str().into(),
+                    sack3?.as_str().into(),
+                );
                 let badge = (sack1
-                    .bytes()
-                    .filter(|item| sack2.bytes().contains(item))
-                    .find(|item| sack3.bytes().contains(item))
+                    .intersection(sack2)
+                    .intersection(sack3)
+                    .first()
                     .ok_or_else(|| AocError.into()) as BoxResult<_>)?;
                 Ok(Self::priority(badge)?)
             })
