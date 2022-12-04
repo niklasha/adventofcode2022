@@ -52,7 +52,7 @@ impl Day04 {
         Ok(io::BufReader::new(input)
             .lines()
             .map(|l| Self::parse(&l?))
-            .filter(|pair: &BoxResult<_>| pair.as_ref().map_or(false, |pair| f(&pair.0, &pair.1)))
+            .filter(|pair| pair.as_ref().map_or(false, |pair| f(&pair.0, &pair.1)))
             .count())
     }
 
