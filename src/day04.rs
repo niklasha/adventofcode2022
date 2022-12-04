@@ -1,6 +1,4 @@
 use crate::day::*;
-use lazy_static::lazy_static;
-use regex::Regex;
 
 pub struct Day04 {}
 
@@ -37,42 +35,33 @@ impl Section {
 
 impl Day04 {
     fn parse(s: &str) -> BoxResult<(Section, Section)> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new("(.+)-(.*),(.+)-(.*)").unwrap();
-        }
-        let cap = RE.captures(s).ok_or(AocError)?;
-        Ok((
-            Section {
-                start: cap[1].parse::<usize>()?,
-                end: cap[2].parse::<usize>()?,
-            },
-            Section {
-                start: cap[3].parse::<usize>()?,
-                end: cap[4].parse::<usize>()?,
-            },
-        ))
+        let mut pair = s.split(',').map(|section| {
+            let mut section = section.split('-');
+            Ok(Section {
+                start: section.next().ok_or(AocError)?.parse()?,
+                end: section.next().ok_or(AocError)?.parse()?,
+            }) as BoxResult<_>
+        });
+        Ok((pair.next().ok_or(AocError)??, pair.next().ok_or(AocError)??))
+    }
+
+    fn process<F>(input: &mut dyn io::Read, f: F) -> BoxResult<Output>
+    where
+        F: Fn(&Section, &Section) -> bool,
+    {
+        Ok(io::BufReader::new(input)
+            .lines()
+            .map(|l| Self::parse(&l?))
+            .filter(|pair: &BoxResult<_>| pair.as_ref().map_or(false, |pair| f(&pair.0, &pair.1)))
+            .count())
     }
 
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Ok(io::BufReader::new(input)
-            .lines()
-            .map(|l| Ok(Self::parse(&l?)?))
-            .filter(|pair: &BoxResult<_>| {
-                pair.as_ref()
-                    .map_or(false, |pair| Section::contains(&pair.0, &pair.1))
-            })
-            .count())
+        Self::process(input, Section::contains)
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Ok(io::BufReader::new(input)
-            .lines()
-            .map(|l| Ok(Self::parse(&l?)?))
-            .filter(|pair: &BoxResult<_>| {
-                pair.as_ref()
-                    .map_or(false, |pair| Section::overlaps(&pair.0, &pair.1))
-            })
-            .count())
+        Self::process(input, Section::overlaps)
     }
 }
 
