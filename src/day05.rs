@@ -31,8 +31,8 @@ impl Day05 {
         let stacks = lines
             .take_while(|r| r.as_ref().map_or(true, |l| l.contains('[')))
             .fold(
-                Ok::<_, Box<dyn error::Error>>(HashMap::<usize, String>::new()),
-                |stacks, l| {
+                Ok(HashMap::new()),
+                |stacks: BoxResult<HashMap<_, String>>, l| {
                     Ok(l?
                         .chars()
                         .enumerate()
@@ -52,28 +52,25 @@ impl Day05 {
                         }))
                 },
             )?;
-        let stacks = lines.skip(1).fold(
-            Ok(stacks),
-            |stacks: BoxResult<HashMap<usize, String>>, l| {
-                l?.split_whitespace()
-                    .tuples()
-                    .fold(stacks, |stacks, (_, count, _, from, _, to)| {
-                        let mut stacks = stacks?;
-                        let (count, from, to) = (
-                            count.parse::<usize>()?,
-                            from.parse::<usize>()?,
-                            to.parse::<usize>()?,
-                        );
-                        for i in (0..count).rev() {
-                            let source = stacks.get_mut(&from).ok_or(AocError)?;
-                            let top = source.remove(select_crate(i)); // XXX panics
-                            let target = stacks.get_mut(&to).ok_or(AocError)?;
-                            target.insert(0, top);
-                        }
-                        Ok(stacks)
-                    })
-            },
-        )?;
+        let stacks = lines.skip(1).fold(Ok(stacks), |stacks: BoxResult<_>, l| {
+            l?.split_whitespace()
+                .tuples()
+                .fold(stacks, |stacks, (_, count, _, from, _, to)| {
+                    let mut stacks = stacks?;
+                    let (count, from, to) = (
+                        count.parse::<usize>()?,
+                        from.parse::<usize>()?,
+                        to.parse::<usize>()?,
+                    );
+                    for i in (0..count).rev() {
+                        let source = stacks.get_mut(&from).ok_or(AocError)?;
+                        let top = source.remove(select_crate(i)); // XXX panics
+                        let target = stacks.get_mut(&to).ok_or(AocError)?;
+                        target.insert(0, top);
+                    }
+                    Ok(stacks)
+                })
+        })?;
         let len = stacks.keys().max().ok_or(AocError)?;
         (1..=*len)
             .map(|i| {
@@ -84,7 +81,7 @@ impl Day05 {
                     .next()
                     .ok_or(AocError)?)
             })
-            .collect::<BoxResult<String>>()
+            .collect()
     }
 
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
