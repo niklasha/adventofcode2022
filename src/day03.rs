@@ -25,7 +25,7 @@ impl Day03 {
             .lines()
             .map(|rucksack| {
                 let rucksack = rucksack?;
-                let (comp1, comp2) = rucksack.split_at(rucksack.len() / 2);
+                let (comp1, comp2) = rucksack.split_at(rucksack.len() / 2); // XXX panics
                 let (comp1, comp2): (ByteSet, ByteSet) = (comp1.into(), comp2.into());
                 let duplicate = comp1.intersection(comp2).first().ok_or(AocError)?;
                 Ok(Self::priority(duplicate)?)
