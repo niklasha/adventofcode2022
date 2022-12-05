@@ -1,4 +1,6 @@
 use crate::day::*;
+use std::ops::Range;
+use std::str::FromStr;
 
 pub struct Day04 {}
 
@@ -18,31 +20,49 @@ impl Day for Day04 {
     }
 }
 
-struct Section {
-    start: usize,
-    end: usize,
-}
+struct Section(Range<usize>);
 
 impl Section {
     fn contains(a: &Section, b: &Section) -> bool {
+        let (a, b) = (&a.0, &b.0);
         a.start <= b.start && a.end >= b.end || b.start <= a.start && b.end >= a.end
     }
 
     fn overlaps(a: &Section, b: &Section) -> bool {
+        let (a, b) = (&a.0, &b.0);
         !(a.end < b.start || a.start > b.end)
+    }
+}
+
+impl FromStr for Section {
+    type Err = AocError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut i = s.split('-');
+        let section = Section(
+            i.next().ok_or(AocError)?.parse().or(Err(AocError))?
+                ..i.next().ok_or(AocError)?.parse().or(Err(AocError))?,
+        );
+        if i.next().is_none() {
+            Ok(section)
+        } else {
+            Err(AocError)
+        }
     }
 }
 
 impl Day04 {
     fn parse(s: &str) -> BoxResult<(Section, Section)> {
-        let mut pair = s.split(',').map(|section| {
-            let mut section = section.split('-');
-            Ok(Section {
-                start: section.next().ok_or(AocError)?.parse()?,
-                end: section.next().ok_or(AocError)?.parse()?,
-            }) as BoxResult<_>
-        });
-        Ok((pair.next().ok_or(AocError)??, pair.next().ok_or(AocError)??))
+        let mut i = s.split(',');
+        let pair = (
+            i.next().ok_or(AocError).and_then(Section::from_str)?,
+            i.next().ok_or(AocError).and_then(Section::from_str)?,
+        );
+        if i.next().is_none() {
+            Ok(pair)
+        } else {
+            Err(AocError)?
+        }
     }
 
     fn process<F>(input: &mut dyn io::Read, f: F) -> BoxResult<Output>
