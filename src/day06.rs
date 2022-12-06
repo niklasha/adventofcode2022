@@ -1,6 +1,4 @@
 use crate::day::*;
-use std::collections::HashSet;
-use std::hash::Hash;
 use std::io::Read;
 
 pub struct Day06 {}
@@ -21,15 +19,6 @@ impl Day for Day06 {
     }
 }
 
-fn has_unique_elements<T>(iter: T) -> bool
-where
-    T: IntoIterator,
-    T::Item: Eq + Hash,
-{
-    let mut uniq = HashSet::new();
-    iter.into_iter().all(move |x| uniq.insert(x))
-}
-
 impl Day06 {
     fn scan(input: &mut dyn io::Read, size: usize) -> BoxResult<Output> {
         let input = io::BufReader::new(input)
@@ -39,7 +28,7 @@ impl Day06 {
             .as_slice()
             .windows(size)
             .enumerate()
-            .find(|(_, w)| has_unique_elements(w.iter()))
+            .find(|(_, w)| w.iter().duplicates().next().is_none())
             .ok_or(AocError)?;
         Ok(i + size)
     }
