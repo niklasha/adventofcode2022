@@ -51,20 +51,11 @@ impl Inode {
         })
     }
 
-    fn dfs_dir_fold(
-        &self,
-        fs: &FileSystem,
-        init: usize, /*S*/ /* , f: F */
-    ) -> Result<usize /*S*/, AocError>
-// where
-    //     F: Fn(&Inode, S) -> Result<S, AocError>,
-    //     S: Debug,
+    fn dfs_dir_fold<F, S>(&self, fs: &FileSystem, init: S, f: F) -> Result<S, AocError>
+    where
+        F: Fn(&Inode, S) -> Result<S, AocError> + Copy,
+        S: Debug,
     {
-        let f = |inode: &Inode, total: usize| -> Result<usize, AocError> {
-            inode
-                .size(fs)
-                .map(|size| if size <= 100000 { size + total } else { total })
-        };
         match &self.ty {
             Type::File => Ok(init),
             Type::Directory(map) => {
@@ -73,55 +64,7 @@ impl Inode {
                     .filter(|(name, _)| *name != "/" && *name != "." && *name != "..")
                     .fold(state, |state, (_name, ino)| {
                         let inode = fs.get(*ino).ok_or(AocError)?;
-                        inode.dfs_dir_fold(fs, state? /*, f*/)
-                    })
-            }
-        }
-    }
-
-    fn dfs2_dir_fold(
-        &self,
-        fs: &FileSystem,
-        init: Option<usize>, /*S*/ /* , f: F */
-    ) -> Result<Option<usize> /*S*/, AocError>
-// where
-    //     F: Fn(&Inode, S) -> Result<S, AocError>,
-    //     S: Debug,
-    {
-        let f = |inode: &Inode, best: Option<usize>| -> Result<Option<usize>, AocError> {
-            inode.size(fs).map(|size| {
-                if size
-                    >= 30000000
-                        - (70000000
-                            - fs.get(0)
-                                .ok_or(AocError)
-                                .and_then(|inode| inode.size(fs))
-                                .ok()?)
-                // XXX loses error info
-                {
-                    Some(if let Some(best) = best {
-                        if size < best {
-                            size
-                        } else {
-                            best
-                        }
-                    } else {
-                        size
-                    })
-                } else {
-                    best
-                }
-            })
-        };
-        match &self.ty {
-            Type::File => Ok(init),
-            Type::Directory(map) => {
-                let state = f(self, init);
-                map.iter()
-                    .filter(|(name, _)| *name != "/" && *name != "." && *name != "..")
-                    .fold(state, |state, (_name, ino)| {
-                        let inode = fs.get(*ino).ok_or(AocError)?;
-                        inode.dfs2_dir_fold(fs, state? /*, f*/)
+                        inode.dfs_dir_fold(fs, state?, f)
                     })
             }
         }
@@ -189,30 +132,15 @@ impl FileSystem {
         Ok(())
     }
 
-    fn dfs<F, S>(&self, init: usize /*S*/, _f: F) -> Result<usize /*S*/, AocError>
+    fn dfs<F, S>(&self, init: S, f: F) -> Result<S, AocError>
     where
-        F: Fn(&Inode, S) -> Result<S, AocError>,
+        F: Fn(&Inode, S) -> Result<S, AocError> + Copy,
         S: Debug,
     {
         self.inner
             .get(0)
             .ok_or(AocError)
-            .and_then(|root| root.dfs_dir_fold(self, init /* , f*/))
-    }
-
-    fn dfs2<F, S>(
-        &self,
-        init: Option<usize>, /*S*/
-        _f: F,
-    ) -> Result<Option<usize> /*S*/, AocError>
-    where
-        F: Fn(&Inode, S) -> Result<S, AocError>,
-        S: Debug,
-    {
-        self.inner
-            .get(0)
-            .ok_or(AocError)
-            .and_then(|root| root.dfs2_dir_fold(self, init /* , f*/))
+            .and_then(|root| root.dfs_dir_fold(self, init, f))
     }
 }
 
@@ -263,46 +191,39 @@ impl Day07 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let fs = Self::parse(input)?;
         // println!("{:#?}", fs);
-        let sizes = fs.dfs(0, |inode: &Inode, total: usize| {
+        let size = fs.dfs(0, |inode: &Inode, total: usize| {
             inode
                 .size(&fs)
                 .map(|size| if size <= 100000 { size + total } else { total })
         });
-        sizes.map_err(|e| e.into())
+        size.map_err(|e| e.into())
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let fs = Self::parse(input)?;
-        // find dir with at least at least 8381165 in size
-        let sizes = fs.dfs2(
-            None,
-            |inode: &Inode, best: Option<usize>| -> Result<Option<usize>, AocError> {
-                inode.size(&fs).map(|size| {
-                    if size
-                        < 30000000
-                            - (70000000
-                                - fs.get(0)
-                                    .ok_or(AocError)
-                                    .and_then(|inode| inode.size(&fs))
-                                    .ok()?)
-                    // XXX loses error info
-                    {
-                        Some(if let Some(best) = best {
-                            if size < best {
-                                size
-                            } else {
-                                best
-                            }
-                        } else {
+        let limit = 30000000
+            - (70000000
+                - fs.get(0)
+                    .ok_or(AocError)
+                    .and_then(|inode| inode.size(&fs))?); // XXX loses error info
+        let size = fs.dfs(None, |inode: &Inode, best: Option<usize>| {
+            inode.size(&fs).map(|size| {
+                if size >= limit {
+                    Some(if let Some(best) = best {
+                        if size < best {
                             size
-                        })
+                        } else {
+                            best
+                        }
                     } else {
-                        best
-                    }
-                })
-            },
-        );
-        Ok(sizes.unwrap().unwrap())
+                        size
+                    })
+                } else {
+                    best
+                }
+            })
+        })?;
+        size.ok_or_else(|| AocError.into())
     }
 }
 
