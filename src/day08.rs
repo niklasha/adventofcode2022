@@ -85,22 +85,14 @@ impl Day08 {
     }
 
     fn is_visible(forest: &Forest, xs: usize, ys: usize, x: usize, y: usize) -> BoxResult<bool> {
-        if x == 0 || y == 0 || x == xs - 1 || y == ys - 1 {
-            return Ok(true);
-        }
-        if Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Up)? {
-            return Ok(true);
-        }
-        if Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Down)? {
-            return Ok(true);
-        }
-        if Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Left)? {
-            return Ok(true);
-        }
-        if Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Right)? {
-            return Ok(true);
-        }
-        Ok(false)
+        Ok(x == 0
+            || y == 0
+            || x == xs - 1
+            || y == ys - 1
+            || Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Up)?
+            || Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Down)?
+            || Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Left)?
+            || Self::is_visible_in_dir(forest, xs, ys, x, y, Dir::Right)?)
     }
 
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
