@@ -1,11 +1,9 @@
 use crate::day::*;
-use std::collections::HashSet;
-use std::iter;
-use std::str::FromStr;
 
 pub struct Day10 {}
 
-type Output = i64;
+type Output1 = i64;
+type Output2 = Vec<String>;
 
 impl Day for Day10 {
     fn tag(&self) -> &str {
@@ -22,28 +20,18 @@ impl Day for Day10 {
 }
 
 #[derive(Debug)]
-struct State1 {
-    x: Output,
+struct State<T> {
+    x: i64,
     clk: usize,
-    acc: Output,
-}
-
-#[derive(Debug)]
-struct State2 {
-    x: Output,
-    clk: usize,
-    acc: Vec<String>,
+    acc: T,
 }
 
 impl Day10 {
-    fn process1(input: &mut dyn io::Read) -> BoxResult<Output> {
-        fn check(clk: usize, x: Output, acc: Output) -> Output {
-            if clk % 40 == 20 {
-                acc + clk as Output * x
-            } else {
-                acc
-            }
-        }
+    fn process<T, F>(input: &mut dyn io::Read, f: F, init: T, at_cycle_start: bool) -> BoxResult<T>
+    where
+        T: Sized,
+        F: Fn(usize, i64, T) -> Result<T, AocError>,
+    {
         io::BufReader::new(input)
             .lines()
             .map(|r| {
@@ -51,52 +39,64 @@ impl Day10 {
                 r
             })
             .fold(
-                Ok(State1 {
+                Ok(State::<T> {
                     x: 1,
                     clk: 1,
-                    acc: 0,
+                    acc: init,
                 }),
                 |state, insn| match insn {
                     Ok(insn) => {
-                        if let Ok(State1 {
+                        if let Ok(State::<T> {
                             mut x,
                             mut clk,
                             mut acc,
                         }) = state
                         {
+                            if at_cycle_start {
+                                acc = f(clk, x, acc)?;
+                            }
                             let mut tokens = insn.split_whitespace();
                             match tokens.next().ok_or(AocError)? {
                                 "noop" => clk += 1,
                                 "addx" => {
                                     clk += 1;
-                                    acc = check(clk, x, acc);
+                                    acc = f(clk, x, acc)?;
                                     clk += 1;
-                                    let op = tokens.next().ok_or(AocError)?.parse::<Output>()?;
+                                    let op = tokens.next().ok_or(AocError)?.parse::<Output1>()?;
                                     x += op;
                                 }
                                 _ => Err(AocError)?,
                             }
-                            acc = check(clk, x, acc);
-                            Ok(State1 { x, clk, acc })
+                            if !at_cycle_start {
+                                acc = f(clk, x, acc)?;
+                            }
+                            Ok(State::<T> { x, clk, acc })
                         } else {
                             state
                         }
                     }
-                    Err(e) => Err::<State1, _>(e),
+                    Err(e) => Err::<State<T>, _>(e),
                 },
             )
             .map(|state| state.acc)
     }
 
-    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        Self::process1(input)
+    fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output1> {
+        fn check(clk: usize, x: i64, acc: Output1) -> Result<Output1, AocError> {
+            Ok(if clk % 40 == 20 {
+                acc + clk as Output1 * x
+            } else {
+                acc
+            })
+        }
+        Self::process(input, check, 0, false)
     }
 
-    fn process2(input: &mut dyn io::Read) -> BoxResult<Vec<String>> {
-        fn check(clk: usize, x: Output, mut acc: Vec<String>) -> Result<Vec<String>, AocError> {
+    fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output2> {
+        fn draw(clk: usize, x: Output1, mut acc: Output2) -> Result<Output2, AocError> {
             let (i, off) = ((clk - 1) / 40, (clk - 1) % 40);
             let sprite = (x - 1)..=(x + 1);
-            let mut s = acc.get_mut(i).ok_or(AocError)?;
+            let s = acc.get_mut(i).ok_or(AocError)?;
             s.push(if sprite.contains(&(off as i64)) {
                 '#' // XXX Better contrast with '█'
             } else {
@@ -104,52 +104,7 @@ impl Day10 {
             });
             Ok(acc)
         }
-        io::BufReader::new(input)
-            .lines()
-            .map(|r| {
-                let r: BoxResult<_> = r.map_err(|e| e.into());
-                r
-            })
-            .fold(
-                Ok(State2 {
-                    x: 1,
-                    clk: 1,
-                    acc: vec![String::new(); 6],
-                }),
-                |state, insn| match insn {
-                    Ok(insn) => {
-                        if let Ok(State2 {
-                            mut x,
-                            mut clk,
-                            mut acc,
-                        }) = state
-                        {
-                            acc = check(clk, x, acc)?;
-                            let mut tokens = insn.split_whitespace();
-                            match tokens.next().ok_or(AocError)? {
-                                "noop" => clk += 1,
-                                "addx" => {
-                                    clk += 1;
-                                    acc = check(clk, x, acc)?;
-                                    clk += 1;
-                                    let op = tokens.next().ok_or(AocError)?.parse::<Output>()?;
-                                    x += op;
-                                }
-                                _ => Err(AocError)?,
-                            }
-                            Ok(State2 { x, clk, acc })
-                        } else {
-                            state
-                        }
-                    }
-                    Err(e) => Err::<State2, _>(e),
-                },
-            )
-            .map(|state| state.acc)
-    }
-
-    fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Vec<String>> {
-        Self::process2(input)
+        Self::process(input, draw, vec![String::new(); 6], true)
     }
 }
 
@@ -157,7 +112,7 @@ impl Day10 {
 mod tests {
     use super::*;
 
-    fn test1(s: &str, f: Output) {
+    fn test1(s: &str, f: Output1) {
         assert_eq!(Day10 {}.part1_impl(&mut s.as_bytes()).ok(), Some(f));
     }
 
@@ -314,7 +269,7 @@ noop",
         );
     }
 
-    fn test2(s: &str, f: Vec<String>) {
+    fn test2(s: &str, f: Output2) {
         assert_eq!(Day10 {}.part2_impl(&mut s.as_bytes()).ok(), Some(f));
     }
 
