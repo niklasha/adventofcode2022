@@ -266,7 +266,6 @@ impl Day11 {
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        // 13972660668 too hig
         Self::process::<usize>(input, 1, 10000)
     }
 }
