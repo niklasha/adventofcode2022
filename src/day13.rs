@@ -144,10 +144,6 @@ impl Day13 {
         Ok(packets
             .iter()
             .enumerate()
-            .map(|(i, p)| {
-                println!("{} {}", i, p);
-                (i, p)
-            })
             .filter(|(_, packet)| match packet {
                 Value::List(v) => match &v.as_slice() {
                     &[Value::List(v)] => {
