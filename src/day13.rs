@@ -13,7 +13,7 @@ impl Day for Day13 {
     }
 
     fn part1(&self, input: &dyn Fn() -> Box<dyn io::Read>) {
-        println!("{:?}", self.part1_impl(&mut *input())); // XXX Magic offset 0, why? bug?
+        println!("{:?}", self.part1_impl(&mut *input()));
     }
 
     fn part2(&self, input: &dyn Fn() -> Box<dyn io::Read>) {
