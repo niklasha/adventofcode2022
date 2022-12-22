@@ -217,29 +217,6 @@ impl Choir {
     fn yell(&self, name: &str) -> BoxResult<Output> {
         self.monkeys.get(name).ok_or(AocError)?.yell(self)
     }
-
-    fn patch_humn(&mut self, n: Output) -> BoxResult<()> {
-        self.monkeys.get_mut("humn").ok_or(AocError)?.job = Job::Number(n);
-        Ok(())
-    }
-
-    fn is_balanced(&self) -> BoxResult<bool> {
-        let root = self.monkeys.get("root").ok_or(AocError)?;
-        if let Job::Expression(expression) = &root.job {
-            Ok(self
-                .monkeys
-                .get(&expression.left)
-                .ok_or(AocError)?
-                .yell(self)?
-                == self
-                    .monkeys
-                    .get(&expression.right)
-                    .ok_or(AocError)?
-                    .yell(self)?)
-        } else {
-            Err(AocError)?
-        }
-    }
 }
 
 impl Day21 {
