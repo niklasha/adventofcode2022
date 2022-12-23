@@ -58,13 +58,13 @@ impl Day17 {
                     .collect::<String>()
             );
         }
-        println!("");
+        println!();
     }
 
     fn process(jets_in: &Vec<bool>, n: usize, compute_cycle: bool) -> BoxResult<Output> {
         let jets_len = jets_in.len();
         let mut jets = jets_in.iter().cycle();
-        let mut rocks = ROCKS.into_iter().cycle();
+        let mut rocks = ROCKS.iter().cycle();
         let mut chamber: Vec<[u8; WIDTH]> = Vec::new();
         let mut jet_count = 0;
         let mut seen = HashMap::<(usize, usize, Vec<[u8; 7]>), usize>::new();
@@ -143,7 +143,7 @@ impl Day17 {
             // Let rock rest in chamber.
             for y in 0..height {
                 let rl = rock[height - y - 1];
-                let mut cl = &mut chamber[ry + y];
+                let cl = &mut chamber[ry + y];
                 for (c, r) in cl.iter_mut().zip(rl.iter()) {
                     if *r == b'#' {
                         *c = b'#'
@@ -171,7 +171,7 @@ impl Day17 {
                 b.and_then(|b| match b {
                     b'<' => Ok(true),
                     b'>' => Ok(false),
-                    e => Err(AocError)?,
+                    _ => Err(AocError)?,
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
