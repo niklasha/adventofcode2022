@@ -139,12 +139,6 @@ impl Board {
                 ..*self
             })
             .collect::<Vec<_>>();
-        // println!(
-        //     "next {:?}",
-        //     next.iter()
-        //         .map(|board| board.expedition)
-        //         .collect::<Vec<_>>()
-        // );
         next
     }
 
@@ -245,12 +239,6 @@ impl Day24 {
                 0usize,
             ),
             |(boards, mut state, t), _| {
-                //println!("t {}", t);
-                //boards.iter().for_each(|b| b.print());
-                //println!(
-                //    "boards.expedition {:?}",
-                //    boards.iter().map(|b| b.expedition).collect_vec()
-                //);
                 if boards.iter().any(|board| board.is_at_the_gates()) {
                     return Break(t);
                 }
@@ -277,12 +265,6 @@ impl Day24 {
                 0usize,
             ),
             |(boards, mut state, t), _| {
-                //println!("t {}", t);
-                //boards.iter().for_each(|b| b.print());
-                //println!(
-                //"boards.expedition {:?}",
-                //boards.iter().map(|b| b.expedition).collect_vec()
-                //);
                 if let Some(board) = boards.iter().find(|board| board.is_at_the_gates()) {
                     return Break((t, board.to_owned()));
                 }
@@ -299,29 +281,9 @@ impl Day24 {
             Break(t) => Ok::<_, Box<dyn error::Error>>(t),
             _ => Err(AocError.into()),
         }?;
-        // println!("t {}", t);
-        // board.print();
-        // let board = board
-        //     .next()
-        //     .into_iter()
-        //     .find(|b| b.expedition == board.expedition)
-        //     .ok_or(AocError)?;
-        // board.print();
-        // let board = board
-        //     .next()
-        //     .into_iter()
-        //     .find(|b| b.expedition == board.expedition)
-        //     .ok_or(AocError)?;
-        // board.print();
         let (t, board) = match (t..).try_fold(
             (iter::once(board).collect::<HashSet<_>>(), HashSet::new(), t),
             |(boards, mut state, t), _| {
-                //println!("t {}", t);
-                //boards.iter().for_each(|b| b.print());
-                //println!(
-                //"boards.expedition {:?}",
-                //boards.iter().map(|b| b.expedition).collect_vec()
-                //);
                 if let Some(board) = boards.iter().find(|board| board.is_at_the_entrance()) {
                     return Break((t, board.to_owned()));
                 }
@@ -338,32 +300,9 @@ impl Day24 {
             Break(t) => Ok::<_, Box<dyn error::Error>>(t),
             _ => Err(AocError.into()),
         }?;
-        // println!("t {}", t);
-        // let mut board = board;
-        // board.expedition = Coord {
-        //     row: board.height + 1,
-        //     column: board.width,
-        // };
-        // board.print();
-        // let board = board
-        //     .next()
-        //     .into_iter()
-        //     .find(|b| b.expedition == board.expedition)
-        //     .ok_or(AocError)?;
-        // let board = board
-        //     .next()
-        //     .into_iter()
-        //     .find(|b| b.expedition == board.expedition)
-        //     .ok_or(AocError)?;
         match (t..).try_fold(
             (iter::once(board).collect::<HashSet<_>>(), HashSet::new(), t),
             |(boards, mut state, t), _| {
-                //println!("t {}", t);
-                //boards.iter().for_each(|b| b.print());
-                //println!(
-                //"boards.expedition {:?}",
-                //boards.iter().map(|b| b.expedition).collect_vec()
-                //);
                 if let Some(board) = boards.iter().find(|board| board.is_at_the_gates()) {
                     return Break((t, board.to_owned()));
                 }
