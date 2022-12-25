@@ -366,7 +366,7 @@ impl Day16 {
 mod tests {
     use super::*;
 
-    fn test1(s: &str, n: usize, np: usize, f: Output) {
+    fn test1(s: &str, n: usize, f: Output) {
         assert_eq!(Day16 {}.part1_impl(&mut s.as_bytes(), n).ok(), Some(f));
     }
 
@@ -388,8 +388,8 @@ Valve JJ has flow rate=21; tunnel leads to valve II",
         );
     }
 
-    fn test2(s: &str, n: usize, np: usize, f: Output) {
-        assert_eq!(Day16 {}.part2_impl(&mut s.as_bytes(), n, np).ok(), Some(f));
+    fn test2(s: &str, n: usize, f: Output) {
+        assert_eq!(Day16 {}.part2_impl(&mut s.as_bytes(), n).ok(), Some(f));
     }
 
     #[test]
