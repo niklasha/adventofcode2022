@@ -22,24 +22,29 @@ impl Day for Day19 {
     }
 }
 
+#[derive(Debug)]
 struct OreCost {
     ore: usize,
 }
 
+#[derive(Debug)]
 struct ClayCost {
     ore: usize,
 }
 
+#[derive(Debug)]
 struct ObsidianCost {
     ore: usize,
     clay: usize,
 }
 
+#[derive(Debug)]
 struct GeodeCost {
     ore: usize,
     obsidian: usize,
 }
 
+#[derive(Debug)]
 struct Blueprint {
     id: usize,
     ore: OreCost,
@@ -64,7 +69,7 @@ impl FromStr for Blueprint {
         if tokens.count() != 1 {
             Err(AocError)?
         } else {
-            Ok(Blueprint {
+            let blueprint = Blueprint {
                 id,
                 ore: OreCost { ore: ore_ore },
                 clay: ClayCost { ore: clay_ore },
@@ -76,35 +81,42 @@ impl FromStr for Blueprint {
                     ore: geode_ore,
                     obsidian: geode_obsidian,
                 },
-            })
+            };
+            println!("{:?}", blueprint);
+            Ok(blueprint)
         }
     }
 }
 
 impl Blueprint {
     fn process(&self, n: usize, do_quality: bool) -> BoxResult<usize> {
-        let (inventories) = (0..n).fold(
+        let inventories = (0..n).fold(
             (iter::once(Inventory {
                 ore_robot: 1,
                 ..Default::default()
             })
             .collect::<HashSet<_>>()),
-            |state, _t| {
-                println!("{}, {:?}", _t, state.len());
-                let (inventories) = state;
-                let inventories = inventories
+            |inventories, _t| {
+                println!("{}, {:?}", _t, inventories.len());
+                let inventories: HashSet<_> = inventories
                     .into_iter()
                     .flat_map(|inventory| inventory.spend(self).into_iter())
                     .collect();
-                (inventories)
+                println!(
+                    "{:?}",
+                    inventories.iter().map(|inventory| inventory.geode).max()
+                );
+                inventories
             },
         );
-        Ok(if do_quality { self.id } else { 1 }
+        let rv = if do_quality { self.id } else { 1 }
             * inventories
                 .iter()
                 .map(|Inventory { geode, .. }| geode)
                 .max()
-                .ok_or(AocError)?)
+                .ok_or(AocError)?;
+        println!("{}", rv);
+        Ok(rv)
     }
 }
 
@@ -122,57 +134,41 @@ struct Inventory {
 
 impl Inventory {
     fn spend(self, blueprint: &Blueprint) -> HashSet<Inventory> {
+        //println!("spend {:?}", self);
         let mut inventories = HashSet::new();
-        let mut new = self;
-        let (mut ng, mut nob, mut nc, mut no) = (0, 0, 0, 0);
-        ng = min(
-            new.obsidian / blueprint.geode.obsidian,
-            new.ore / blueprint.geode.ore,
-        );
-        new.obsidian -= ng * blueprint.geode.obsidian;
-        new.ore -= ng * blueprint.geode.ore;
-        nob = min(
-            new.clay / blueprint.obsidian.clay,
-            new.ore / blueprint.obsidian.ore,
-        );
-        new.clay -= nob * blueprint.obsidian.clay;
-        new.ore -= nob * blueprint.obsidian.ore;
-        nc = new.ore / blueprint.clay.ore;
-        if nc > 0 {
-            let mut new = self;
-            new.ore -= nc * blueprint.clay.ore;
-            no = new.ore / blueprint.ore.ore;
-            if no > 0 {
-                let mut new = self;
-                new.ore -= no * blueprint.ore.ore;
-                new.collect();
-                new.geode_robot += ng;
-                new.obsidian_robot += nob;
-                new.clay_robot += nc;
-                new.ore_robot += no;
+        let mut temp = self;
+        temp.collect();
+        if self.obsidian >= blueprint.geode.obsidian && self.ore > blueprint.geode.ore {
+            let mut new = temp;
+            new.obsidian -= blueprint.geode.obsidian;
+            new.ore -= blueprint.geode.ore;
+            new.geode_robot += 1;
+            inventories.insert(new);
+        } else {
+            if self.obsidian < blueprint.geode.obsidian
+                && self.clay >= blueprint.obsidian.clay
+                && self.ore >= blueprint.obsidian.ore
+            {
+                let mut new = temp;
+                new.clay -= blueprint.obsidian.clay;
+                new.ore -= blueprint.obsidian.ore;
+                new.obsidian_robot += 1;
                 inventories.insert(new);
             }
-            new.collect();
-            new.geode_robot += ng;
-            new.obsidian_robot += nob;
-            new.clay_robot += nc;
-            inventories.insert(new);
+            if self.clay < blueprint.obsidian.clay && self.ore >= blueprint.clay.ore {
+                let mut new = temp;
+                new.ore -= blueprint.clay.ore;
+                new.clay_robot += 1;
+                inventories.insert(new);
+            }
+            if self.ore >= blueprint.ore.ore {
+                let mut new = temp;
+                new.ore -= blueprint.ore.ore;
+                new.ore_robot += 1;
+                inventories.insert(new);
+            }
+            inventories.insert(temp);
         }
-        no = new.ore / blueprint.ore.ore;
-        if no > 0 {
-            let mut new = self;
-            new.ore -= no * blueprint.ore.ore;
-            new.collect();
-            new.geode_robot += ng;
-            new.obsidian_robot += nob;
-            new.clay_robot += nc;
-            new.ore_robot += no;
-            inventories.insert(new);
-        }
-        // new.collect();
-        // new.geode_robot += ng;
-        // new.obsidian_robot += nob;
-        // inventories.insert(new);
         inventories
     }
 
@@ -238,7 +234,7 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
         assert_eq!(Day19 {}.part2_impl(&mut s.as_bytes()).ok(), Some(f));
     }
 
-    #[test]
+    //#[test]
     fn part2() {
         test2("Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
 Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.",
