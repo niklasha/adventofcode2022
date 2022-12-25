@@ -1,9 +1,10 @@
 use crate::day::*;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::io::Read;
 use std::iter;
+use std::ops::Add;
 use std::str::FromStr;
 
 pub struct Day16 {}
@@ -20,7 +21,7 @@ impl Day for Day16 {
     }
 
     fn part2(&self, input: &dyn Fn() -> Box<dyn io::Read>) {
-        println!("{:?}", self.part2_impl(&mut *input(), 30));
+        println!("{:?}", self.part2_impl(&mut *input(), 26));
     }
 }
 
@@ -59,47 +60,6 @@ impl FromStr for Valve {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct ValveState {
-    locked: bool,
-    opened: Option<usize>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct State {
-    current: String,
-    valves: HashMap<String, ValveState>,
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:", self.current);
-        self.valves
-            .iter()
-            .filter(|(_, v)| !v.locked && v.opened.is_some())
-            .sorted_by_key(|(k, _)| *k)
-            .for_each(|(k, _)| {
-                write!(f, "{}", k);
-            });
-        Ok(())
-    }
-}
-
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.current.hash(state);
-        for (k, v) in self
-            .valves
-            .iter()
-            .filter(|(_, v)| !v.locked && v.opened.is_some())
-            .sorted_by_key(|(k, _)| *k)
-        {
-            k.hash(state);
-            v.hash(state);
-        }
-    }
-}
-
 struct Cave {
     name_to_valve: HashMap<String, u8>,
     openable: Vec<u8>,
@@ -125,7 +85,7 @@ impl Cave {
             .collect();
         assert!(valves.iter().filter(|v| v.rate > 0).count() <= NOT_OPENABLE as usize);
         let mut openable = vec![NOT_OPENABLE; valves.len()];
-        for (j, (i, v)) in valves
+        for (j, (i, _)) in valves
             .iter()
             .enumerate()
             .filter(|(_, v)| v.rate > 0)
@@ -148,10 +108,10 @@ impl Cave {
             .filter(|v| v.rate > 0)
             .map(|v| v.rate)
             .collect::<Vec<_>>();
-        println!("{:?}", name_to_valve);
-        println!("{:?}", openable);
-        println!("{:?}", neighbours);
-        println!("{:?}", rate);
+        // println!("{:?}", name_to_valve);
+        // println!("{:?}", openable);
+        // println!("{:?}", neighbours);
+        // println!("{:?}", rate);
         Ok(Cave {
             name_to_valve,
             openable,
@@ -191,7 +151,6 @@ impl Cave {
             //     t, valve_no, valves_state, flow, delta
             // );
             let flow = flow + delta;
-            let mut did_walk = false;
             let openable_valve_no = self.openable[valve_no as usize] as u16;
             if openable_valve_no != NOT_OPENABLE as u16 {
                 let mask = 1 << openable_valve_no;
@@ -206,7 +165,6 @@ impl Cave {
                         flow,
                         flow_max,
                     );
-                    did_walk = true;
                 }
             }
             let mut neighbours = self.neighbours[valve_no as usize];
@@ -215,23 +173,141 @@ impl Cave {
                 let ffs = neighbours.trailing_zeros() as u8;
                 neighbour += ffs;
                 self.traverse(neighbour, valves_state, visited, t + 1, eol, flow, flow_max);
-                did_walk = true;
                 neighbours >>= ffs + 1;
                 neighbour += 1;
             }
             visited[offset] &= !visit_mask;
-            //     if !did_walk {
-            //         self.traverse(valve_no, valves_state, visited, t + 1, eol, flow, flow_max);
-            //     }
         }
+    }
+
+    fn single_action(&self, p: Player, s: State) -> HashSet<StateDiff> {
+        let cur = p as Valve2;
+        let mut diffs = HashSet::new();
+        // When all valves has been opened there is no need to move anymore
+        if s.valves.count_ones() as usize == self.rate.len() {
+            diffs.insert(StateDiff::Noop);
+        } else {
+            let openable_valve_no = self.openable[cur as usize] as Valve2;
+            if openable_valve_no != NOT_OPENABLE && (s.valves & (1 << cur)) == 0 {
+                diffs.insert(StateDiff::Open(cur));
+            }
+            let mut neighbours = self.neighbours[cur as usize];
+            let mut neighbour = 0 as Valve2;
+            while neighbours != 0 {
+                let ffs = neighbours.trailing_zeros() as Valve2;
+                neighbour += ffs;
+                diffs.insert(StateDiff::Travel(p, neighbour));
+                neighbours >>= ffs + 1;
+                neighbour += 1;
+            }
+        }
+        diffs
+    }
+
+    fn traverse2(
+        &self,
+        states: HashSet<(State, usize)>,
+        seen: &mut HashSet<State>,
+        t: usize,
+        eol: usize,
+        flow_max: &mut usize,
+    ) {
+        *flow_max = states.iter().map(|(_, flow)| *flow).max().unwrap_or(0);
+        //        println!("traverse2 t {} max {}", t, flow_max);
+        if t > eol {
+            return;
+        }
+        let mut new_states = HashSet::new();
+        for (state, flow) in states {
+            let delta = (0..self.openable.len())
+                .filter(|valve_no| (state.valves & (1 << valve_no)) != 0)
+                .map(|valve_no| self.rate[self.openable[valve_no] as usize])
+                .sum::<usize>();
+            let flow = flow + delta;
+            // XXX Ugly heuristic to speed up the process by pruning unlikely
+            // XXX branches.
+            if flow + self.rate.iter().sum::<usize>() * (eol - t + 1) < 3000 {
+                continue;
+            }
+            for action0 in self.single_action(state.duo.player0(), state) {
+                for action1 in self.single_action(state.duo.player1(), state) {
+                    let new = state + action0 + action1;
+                    new_states.insert((new, flow));
+                    if !seen.contains(&new) {
+                        seen.insert(new);
+                        //println!("  {:?} {:?}", action0, action1);
+                    }
+                }
+            }
+        }
+        self.traverse2(new_states, seen, t + 1, eol, flow_max);
     }
 }
 
-struct VisitState(u32);
+type Valve2 = u8;
+type ValveSet = u64;
 
-impl VisitState {
-    fn from(valve: u8, visited: u16) -> Self {
-        VisitState((valve as u32) << OPENABLE_COUNT | visited as u32)
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum StateDiff {
+    Noop,
+    Open(Valve2),
+    Travel(Player, Valve2),
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct State {
+    duo: Duo,
+    valves: ValveSet,
+}
+
+impl Add<StateDiff> for State {
+    type Output = State;
+
+    fn add(mut self, rhs: StateDiff) -> Self::Output {
+        match rhs {
+            StateDiff::Noop => {}
+            StateDiff::Open(v) => {
+                self.valves |= 1 << v as ValveSet;
+            }
+            StateDiff::Travel(src, dst) => self.duo.travel(src, dst),
+        }
+        self
+    }
+}
+
+type Player = Valve2;
+type PlayerSet = ValveSet;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct Duo {
+    players: PlayerSet,
+}
+
+impl Duo {
+    fn new(a: Player, b: Player) -> Self {
+        Self {
+            players: (1 << a as PlayerSet) | (1 << b as PlayerSet),
+        }
+    }
+    fn player0(&self) -> Player {
+        self.players.trailing_zeros() as Player
+    }
+    fn player1(&self) -> Player {
+        (u64::BITS - self.players.leading_zeros() - 1) as Player
+    }
+    fn travel(&mut self, src: Player, dst: Valve2) {
+        // If both players is at the same valve, the mask will be a
+        // power of two, and we should retain the source as occupied.
+        if !self.players.is_power_of_two() {
+            self.players &= !(1 << src as PlayerSet);
+        }
+        self.players |= 1 << dst as PlayerSet;
+    }
+}
+
+impl Display for Duo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Duo[{} {}]", self.player0(), self.player1())
     }
 }
 
@@ -251,111 +327,38 @@ impl Day16 {
         Ok(flow_max)
     }
 
-    fn process_old(input: &mut dyn io::Read, n: usize) -> BoxResult<Output> {
-        let cave = Self::parse(input)?;
-        let init = vec![(
-            State {
-                current: "AA".to_owned(),
-                valves: cave
-                    .values()
-                    .map(|v| {
-                        (
-                            v.name.to_owned(),
-                            ValveState {
-                                locked: v.rate == 0,
-                                opened: if v.name == "AA" { Some(1) } else { None },
-                            },
-                        )
-                    })
-                    .collect(),
-            },
-            HashSet::new(),
-        )];
-        //let vcnt = cave.values().filter(|v| (*v).rate > 0).count();
-        let states = (1..=n).fold(Ok(init), |states: BoxResult<_>, t| {
-            println!("== {} == {:?}", t, states.as_ref().map(|s| s.len()));
-            let mut next = Vec::new();
-            for (state, mut visited) in states? {
-                // If all valves with flow are open, just stay and wait.
-                if state
-                    .valves
-                    .values()
-                    .filter(|v| !v.locked)
-                    .all(|v| v.opened.is_some())
-                {
-                    next.push((state, visited));
-                } else {
-                    //println!("-- {}<<", state);
-                    //visited.iter().for_each(|v| println!("{}", v));
-                    visited.insert(state.to_owned());
-                    let valve = cave.get(&state.current).ok_or(AocError)?;
-                    let valve_state = state.valves.get(&state.current).ok_or(AocError)?;
-                    if !valve_state.locked && valve_state.opened.is_none() {
-                        let mut new = state.clone();
-                        let mut valve = new.valves.get_mut(&new.current).ok_or(AocError)?;
-                        valve.opened = Some(t);
-                        next.push((new, visited.to_owned()));
-                    }
-                    for neighbour in &valve.neighbours {
-                        let mut new = state.clone();
-                        new.current = neighbour.to_owned();
-                        if !visited.contains(&new) {
-                            next.push((new, visited.to_owned()));
-                        }
-                    }
-                }
-            }
-            Ok(next)
-        })?;
-        let foo = states
-            .iter()
-            .map(|(state, _)| {
-                let sum = state
-                    .valves
-                    .iter()
-                    .map(|(k, v)| {
-                        {
-                            Ok(cave.get(k).ok_or(AocError)?.rate
-                                * if let Some(t) = v.opened { n - t } else { 0 })
-                        }
-                    })
-                    .sum::<BoxResult<_>>();
-                sum.map(|sum: Output| (state, sum))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let (state, sum) = foo
-            .into_iter()
-            .max_by_key(|(_, sum)| sum.to_owned())
-            .ok_or(AocError)?;
-        //        println!("{:?} {:?}", sum, state);
-        Ok(sum)
+    fn process2(input: &mut dyn io::Read, n: usize) -> BoxResult<Output> {
+        let cave = Cave::parse(input)?;
+        let start = *cave.name_to_valve.get("AA").ok_or(AocError)?;
+        // println!(
+        //     "full_rate {} start {}",
+        //     cave.rate.iter().sum::<Output>(),
+        //     start
+        // );
+        let mut flow_max = 0;
+        cave.traverse2(
+            iter::once((
+                State {
+                    duo: Duo::new(start, start),
+                    valves: 0,
+                },
+                0,
+            ))
+            .collect(),
+            &mut HashSet::new(),
+            1,
+            n,
+            &mut flow_max,
+        );
+        Ok(flow_max)
     }
-
-    fn parse(input: &mut dyn Read) -> BoxResult<HashMap<String, Valve>> {
-        io::BufReader::new(input)
-            .lines()
-            .map(|l| l.map_err(|e| e.into()))
-            .map(|l| l.and_then(|l| l.parse::<Valve>()))
-            .map(|v| v.map(|v| (v.name.to_owned(), v)))
-            .collect::<BoxResult<HashMap<_, _>>>()
-    }
-
-    // fn parse2(input: &mut dyn Read) -> Graph<String, Valve> {
-    //     let mut cave = io::BufReader::new(input)
-    //         .lines()
-    //         .map(|l| l.map_err(|e| e.into()))
-    //         .map(|l| l.and_then(|l| l.parse::<Valve>()))
-    //         .map(|v| v.map(|v| (v.name.to_owned(), v)))
-    //         .collect::<BoxResult<HashMap<_, _>>>()?;
-    //     cave
-    // }
 
     fn part1_impl(&self, input: &mut dyn io::Read, n: usize) -> BoxResult<Output> {
         Self::process(input, n)
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read, n: usize) -> BoxResult<Output> {
-        Self::process(input, n)
+        Self::process2(input, n)
     }
 }
 
@@ -363,7 +366,7 @@ impl Day16 {
 mod tests {
     use super::*;
 
-    fn test1(s: &str, n: usize, f: Output) {
+    fn test1(s: &str, n: usize, np: usize, f: Output) {
         assert_eq!(Day16 {}.part1_impl(&mut s.as_bytes(), n).ok(), Some(f));
     }
 
@@ -385,8 +388,8 @@ Valve JJ has flow rate=21; tunnel leads to valve II",
         );
     }
 
-    fn test2(s: &str, n: usize, f: Output) {
-        assert_eq!(Day16 {}.part2_impl(&mut s.as_bytes(), n).ok(), Some(f));
+    fn test2(s: &str, n: usize, np: usize, f: Output) {
+        assert_eq!(Day16 {}.part2_impl(&mut s.as_bytes(), n, np).ok(), Some(f));
     }
 
     #[test]
