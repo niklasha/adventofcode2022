@@ -76,7 +76,13 @@ fn main() {
         let input: Box<dyn Fn() -> Box<dyn io::Read>> =
             Box::new(|| Box::new(fs::File::open(&day.1).unwrap()));
         println!("= {} =", day.0.tag());
-        day.0.part1(&input);
-        day.0.part2(&input);
+        if args.len() > 3 && args[3] == "1" {
+            day.0.part1(&input);
+        } else if args.len() > 3 && args[3] == "2" {
+            day.0.part2(&input);
+        } else {
+            day.0.part1(&input);
+            day.0.part2(&input);
+        }
     }
 }
