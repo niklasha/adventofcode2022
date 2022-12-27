@@ -14,7 +14,7 @@ impl Day for Day19 {
     }
 
     fn part1(&self, input: &dyn Fn() -> Box<dyn io::Read>) {
-        //println!("{:?}", self.part1_impl(&mut *input()));
+        println!("{:?}", self.part1_impl(&mut *input()));
     }
 
     fn part2(&self, input: &dyn Fn() -> Box<dyn io::Read>) {
@@ -138,35 +138,81 @@ impl Inventory {
         let mut inventories = HashSet::new();
         let mut temp = self;
         temp.collect();
-        if self.obsidian >= blueprint.geode.obsidian && self.ore > blueprint.geode.ore {
+        let geode_robots_creatable = min(
+            self.obsidian / blueprint.geode.obsidian,
+            self.ore / blueprint.geode.ore,
+        );
+        let obsidian_robots_creatable = min(
+            self.clay / blueprint.obsidian.clay,
+            self.ore / blueprint.obsidian.ore,
+        );
+        let clay_robots_creatable = self.ore / blueprint.clay.ore;
+        let ore_robots_creatable = self.ore / blueprint.ore.ore;
+        if geode_robots_creatable >= 1 {
             let mut new = temp;
             new.obsidian -= blueprint.geode.obsidian;
             new.ore -= blueprint.geode.ore;
             new.geode_robot += 1;
             inventories.insert(new);
-        } else {
-            if self.obsidian < blueprint.geode.obsidian
-                && self.clay >= blueprint.obsidian.clay
-                && self.ore >= blueprint.obsidian.ore
-            {
-                let mut new = temp;
-                new.clay -= blueprint.obsidian.clay;
-                new.ore -= blueprint.obsidian.ore;
-                new.obsidian_robot += 1;
-                inventories.insert(new);
-            }
-            if self.clay < blueprint.obsidian.clay && self.ore >= blueprint.clay.ore {
-                let mut new = temp;
-                new.ore -= blueprint.clay.ore;
-                new.clay_robot += 1;
-                inventories.insert(new);
-            }
-            if self.ore >= blueprint.ore.ore {
-                let mut new = temp;
-                new.ore -= blueprint.ore.ore;
-                new.ore_robot += 1;
-                inventories.insert(new);
-            }
+        }
+        // Heuristic: Only allow collecting obsidian, when we can build at most
+        // one geode robot, but not if we already have reached the needed
+        // capacity per turn.
+        if obsidian_robots_creatable >= 1
+            && geode_robots_creatable < 2
+            && self.obsidian_robot < blueprint.geode.obsidian
+        {
+            let mut new = temp;
+            new.clay -= blueprint.obsidian.clay;
+            new.ore -= blueprint.obsidian.ore;
+            new.obsidian_robot += 1;
+            inventories.insert(new);
+        }
+        // Heuristic: Only allow collecting clay, when we can build at most one
+        // obsidian robot, but not if we already have reached the needed
+        // capacity per turn.
+        if clay_robots_creatable >= 1
+            && obsidian_robots_creatable < 2
+            && self.clay_robot < blueprint.obsidian.clay
+        {
+            let mut new = temp;
+            new.ore -= blueprint.clay.ore;
+            new.clay_robot += 1;
+            inventories.insert(new);
+        }
+        // Heuristic: Only allow collecting ore, if we have not already reached
+        // the needed capacity to build something otherwise buildable per turn.
+        if ore_robots_creatable >= 1
+            && self.ore_robot
+                < max(
+                    max(blueprint.ore.ore, blueprint.clay.ore),
+                    max(
+                        if self.clay >= blueprint.obsidian.clay {
+                            blueprint.obsidian.ore
+                        } else {
+                            0
+                        },
+                        if self.obsidian >= blueprint.geode.obsidian {
+                            blueprint.geode.ore
+                        } else {
+                            0
+                        },
+                    ),
+                )
+        {
+            let mut new = temp;
+            new.ore -= blueprint.ore.ore;
+            new.ore_robot += 1;
+            inventories.insert(new);
+        }
+        // Heuristic: Only allow waiting when we must, or only have one other
+        // option.
+        if geode_robots_creatable
+            + obsidian_robots_creatable
+            + clay_robots_creatable
+            + ore_robots_creatable
+            < 2
+        {
             inventories.insert(temp);
         }
         inventories
@@ -234,7 +280,7 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
         assert_eq!(Day19 {}.part2_impl(&mut s.as_bytes()).ok(), Some(f));
     }
 
-    //#[test]
+    #[test]
     fn part2() {
         test2("Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
 Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.",
