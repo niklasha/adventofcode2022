@@ -44,7 +44,7 @@ impl Day20 {
             |v: &mut Vec<(usize, Output)>,
              l: usize,
              init: &Vec<(usize, Output)>|
-             -> Result<(), AocError> { Self::mix(v, l, &init) },
+             -> Result<(), AocError> { Self::mix(v, l, init) },
         )
     }
 
@@ -71,7 +71,7 @@ impl Day20 {
              init: &Vec<(usize, Output)>|
              -> Result<(), AocError> {
                 for _i in 0..10 {
-                    Self::mix(v, l, &init)?
+                    Self::mix(v, l, init)?
                 }
                 Ok(())
             },

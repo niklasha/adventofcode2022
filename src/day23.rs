@@ -1,7 +1,6 @@
 use crate::day::*;
 use itertools::Itertools;
 use std::collections::HashSet;
-use std::io::Read;
 
 pub struct Day23 {}
 
@@ -46,7 +45,7 @@ impl Board {
         self.elves
             .iter()
             .flat_map(|elf| {
-                let ((north_occupied, south_occupied, west_occupied, east_occupied)) = (
+                let (north_occupied, south_occupied, west_occupied, east_occupied) = (
                     (-1..=1).any(|i| self.elves.contains(&Coord(elf.0 + i, elf.1 - 1))),
                     (-1..=1).any(|i| self.elves.contains(&Coord(elf.0 + i, elf.1 + 1))),
                     (-1..=1).any(|i| self.elves.contains(&Coord(elf.0 - 1, elf.1 + i))),

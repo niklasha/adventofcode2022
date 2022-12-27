@@ -1,7 +1,6 @@
 use crate::day::*;
 use std::collections::HashMap;
 use std::io::Read;
-use std::ops::Index;
 
 pub struct Day17 {}
 
@@ -48,18 +47,18 @@ const ROCKS: &[&[[u8; WIDTH]]] = &[
 ];
 
 impl Day17 {
-    fn print(chamber: &Vec<[u8; WIDTH]>) {
-        for y in (0..chamber.len()).rev() {
-            println!(
-                "{}",
-                chamber[y]
-                    .into_iter()
-                    .map(|b| b as char)
-                    .collect::<String>()
-            );
-        }
-        println!();
-    }
+    // fn print(chamber: &Vec<[u8; WIDTH]>) {
+    //     for y in (0..chamber.len()).rev() {
+    //         println!(
+    //             "{}",
+    //             chamber[y]
+    //                 .into_iter()
+    //                 .map(|b| b as char)
+    //                 .collect::<String>()
+    //         );
+    //     }
+    //     println!();
+    // }
 
     fn process(jets_in: &Vec<bool>, n: usize, compute_cycle: bool) -> BoxResult<Output> {
         let jets_len = jets_in.len();

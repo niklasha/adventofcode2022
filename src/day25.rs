@@ -81,11 +81,7 @@ impl Day25 {
             .lines()
             .map(|r| {
                 r.map_err(|e| Box::new(e) as Box<dyn error::Error>)
-                    .and_then(|s| {
-                        s.parse::<Snafu>()
-                            .map_err(|e| e.into())
-                            .map(|n| i64::from(n))
-                    })
+                    .and_then(|s| s.parse::<Snafu>().map_err(|e| e.into()).map(i64::from))
             })
             .sum::<BoxResult<i64>>()
             .map(|n| Snafu::from(n).to_string())

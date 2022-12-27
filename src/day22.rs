@@ -1,8 +1,5 @@
 use crate::day::*;
 use std::cmp::max;
-use std::collections::HashMap;
-use std::io::Read;
-use std::str::FromStr;
 
 pub struct Day22 {}
 
@@ -21,6 +18,8 @@ impl Day for Day22 {
         println!("{:?}", self.part2_impl(&mut *input(), Board::cube_step));
     }
 }
+
+type Pos = (usize, usize, usize);
 
 #[derive(Debug)]
 struct Board {
@@ -60,16 +59,16 @@ impl Board {
         })
     }
 
-    fn starting_position(&self) -> Result<(usize, usize, usize), AocError> {
-        Ok((0, self.horizontal.get(0).ok_or(AocError)?.0, 0))
+    fn starting_position(&self) -> Result<Pos, AocError> {
+        Ok((0, self.horizontal.first().ok_or(AocError)?.0, 0))
     }
 
     fn walk(
         &self,
-        mut pos: (usize, usize, usize),
+        pos: Pos,
         distance: usize,
-        step: fn(&Self, (usize, usize, usize)) -> Result<(usize, usize, usize), AocError>,
-    ) -> Result<(usize, usize, usize), AocError> {
+        step: fn(&Self, Pos) -> Result<Pos, AocError>,
+    ) -> Result<Pos, AocError> {
         let mut pos = pos;
         for _ in 0..distance {
             let new_pos = step(self, pos)?;
@@ -89,7 +88,7 @@ impl Board {
         Ok(pos)
     }
 
-    fn flat_step(&self, pos: (usize, usize, usize)) -> Result<(usize, usize, usize), AocError> {
+    fn flat_step(&self, pos: Pos) -> Result<Pos, AocError> {
         let (row, column, facing) = pos;
         let row_limits = self.vertical.get(column).ok_or(AocError)?;
         let row_width = row_limits.1 - row_limits.0;
@@ -120,34 +119,34 @@ impl Board {
         })
     }
 
-    fn cube_step(&self, pos: (usize, usize, usize)) -> Result<(usize, usize, usize), AocError> {
-        let (face, face_pos) = self.to_face(pos)?;
+    fn cube_step(&self, pos: Pos) -> Result<Pos, AocError> {
+        let (face, face_pos) = self.cvt_to_face(pos)?;
         Ok(match face {
             1 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(2, (face_pos.0, 0, 0))?
+                        self.cvt_from_face(2, (face_pos.0, 0, 0))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(3, (0, face_pos.1, 1))?
+                        self.cvt_from_face(3, (0, face_pos.1, 1))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(4, (self.size - 1 - face_pos.0, 0, 0))?
+                        self.cvt_from_face(4, (self.size - 1 - face_pos.0, 0, 0))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(6, (face_pos.1, 0, 0))?
+                        self.cvt_from_face(6, (face_pos.1, 0, 0))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -157,28 +156,28 @@ impl Board {
             2 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(5, (self.size - 1 - face_pos.0, self.size - 1, 2))?
+                        self.cvt_from_face(5, (self.size - 1 - face_pos.0, self.size - 1, 2))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(3, (face_pos.1, self.size - 1, 2))?
+                        self.cvt_from_face(3, (face_pos.1, self.size - 1, 2))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(1, (face_pos.0, self.size - 1, 2))?
+                        self.cvt_from_face(1, (face_pos.0, self.size - 1, 2))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(6, (self.size - 1, face_pos.1, 3))?
+                        self.cvt_from_face(6, (self.size - 1, face_pos.1, 3))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -188,28 +187,28 @@ impl Board {
             3 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(2, (self.size - 1, self.size - 1 - face_pos.0, 3))?
+                        self.cvt_from_face(2, (self.size - 1, self.size - 1 - face_pos.0, 3))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(5, (0, face_pos.1, 1))?
+                        self.cvt_from_face(5, (0, face_pos.1, 1))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(4, (0, self.size - 1 - face_pos.0, 1))?
+                        self.cvt_from_face(4, (0, self.size - 1 - face_pos.0, 1))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(1, (self.size - 1, face_pos.1, 3))?
+                        self.cvt_from_face(1, (self.size - 1, face_pos.1, 3))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -219,28 +218,28 @@ impl Board {
             4 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(5, (face_pos.0, 0, 0))?
+                        self.cvt_from_face(5, (face_pos.0, 0, 0))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(6, (0, face_pos.1, 1))?
+                        self.cvt_from_face(6, (0, face_pos.1, 1))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(1, (0, face_pos.0, 1))?
+                        self.cvt_from_face(1, (0, face_pos.0, 1))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(3, (self.size - 1 - face_pos.1, 0, 0))?
+                        self.cvt_from_face(3, (self.size - 1 - face_pos.1, 0, 0))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -250,28 +249,28 @@ impl Board {
             5 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(2, (self.size - 1 - face_pos.0, self.size - 1, 2))?
+                        self.cvt_from_face(2, (self.size - 1 - face_pos.0, self.size - 1, 2))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(6, (face_pos.0, self.size - 1, 2))?
+                        self.cvt_from_face(6, (face_pos.0, self.size - 1, 2))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(4, (face_pos.0, self.size - 1, 2))?
+                        self.cvt_from_face(4, (face_pos.0, self.size - 1, 2))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(3, (self.size - 1, face_pos.1, 3))?
+                        self.cvt_from_face(3, (self.size - 1, face_pos.1, 3))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -281,28 +280,28 @@ impl Board {
             6 => match pos.2 {
                 0 => {
                     if face_pos.1 + 1 == self.size {
-                        self.from_face(5, (self.size - 1, face_pos.0, 3))?
+                        self.cvt_from_face(5, (self.size - 1, face_pos.0, 3))?
                     } else {
                         (pos.0, pos.1 + 1, pos.2)
                     }
                 }
                 1 => {
                     if face_pos.0 + 1 == self.size {
-                        self.from_face(2, (0, face_pos.1, 1))?
+                        self.cvt_from_face(2, (0, face_pos.1, 1))?
                     } else {
                         (pos.0 + 1, pos.1, pos.2)
                     }
                 }
                 2 => {
                     if face_pos.1 == 0 {
-                        self.from_face(1, (0, face_pos.0, 1))?
+                        self.cvt_from_face(1, (0, face_pos.0, 1))?
                     } else {
                         (pos.0, pos.1 - 1, pos.2)
                     }
                 }
                 3 => {
                     if face_pos.0 == 0 {
-                        self.from_face(4, (self.size - 1, face_pos.1, 3))?
+                        self.cvt_from_face(4, (self.size - 1, face_pos.1, 3))?
                     } else {
                         (pos.0 - 1, pos.1, pos.2)
                     }
@@ -313,208 +312,208 @@ impl Board {
         })
     }
 
-    fn cube_step_test(
-        &self,
-        pos: (usize, usize, usize),
-    ) -> Result<(usize, usize, usize), AocError> {
-        let (face, face_pos) = self.to_face_test(pos)?;
-        Ok(match face {
-            1 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(6, (self.size - 1 - face_pos.0, self.size - 1, 2))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(4, (0, face_pos.1, 1))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(3, (0, face_pos.0, 1))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(2, (0, self.size - 1 - face_pos.1, 1))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            2 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(3, (face_pos.0, 0, 0))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(5, (face_pos.0, self.size - 1 - face_pos.1, 3))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(6, (self.size - 1, self.size - 1 - face_pos.0, 3))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(1, (0, self.size - 1 - face_pos.1, 1))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            3 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(4, (face_pos.0, 0, 0))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(5, (self.size - 1 - face_pos.1, 0, 0))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(2, (face_pos.0, self.size - 1, 2))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(1, (face_pos.1, 0, 0))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            4 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(6, (0, self.size - 1 - face_pos.0, 1))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(5, (0, face_pos.1, 1))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(3, (face_pos.0, self.size - 1, 2))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(1, (self.size - 1, face_pos.1, 3))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            5 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(6, (face_pos.0, 0, 0))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(2, (self.size - 1, self.size - 1 - face_pos.1, 3))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(3, (self.size - 1, self.size - 1 - face_pos.1, 3))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(4, (self.size - 1, face_pos.1, 3))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            6 => match pos.2 {
-                0 => {
-                    if face_pos.1 + 1 == self.size {
-                        self.from_face_test(1, (self.size - 1 - face_pos.0, self.size - 1, 2))?
-                    } else {
-                        (pos.0, pos.1 + 1, pos.2)
-                    }
-                }
-                1 => {
-                    if face_pos.0 + 1 == self.size {
-                        self.from_face_test(2, (self.size - 1 - face_pos.1, 0, 0))?
-                    } else {
-                        (pos.0 + 1, pos.1, pos.2)
-                    }
-                }
-                2 => {
-                    if face_pos.1 == 0 {
-                        self.from_face_test(5, (face_pos.0, self.size - 1, 2))?
-                    } else {
-                        (pos.0, pos.1 - 1, pos.2)
-                    }
-                }
-                3 => {
-                    if face_pos.0 == 0 {
-                        self.from_face_test(4, (self.size - 1 - face_pos.1, self.size - 1, 2))?
-                    } else {
-                        (pos.0 - 1, pos.1, pos.2)
-                    }
-                }
-                _ => Err(AocError)?,
-            },
-            _ => Err(AocError)?,
-        })
-    }
+    // fn cube_step_test(
+    //     &self,
+    //     pos: Pos,
+    // ) -> Result<Pos, AocError> {
+    //     let (face, face_pos) = self.to_face_test(pos)?;
+    //     Ok(match face {
+    //         1 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(6, (self.size - 1 - face_pos.0, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(4, (0, face_pos.1, 1))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(3, (0, face_pos.0, 1))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(2, (0, self.size - 1 - face_pos.1, 1))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         2 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(3, (face_pos.0, 0, 0))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(5, (face_pos.0, self.size - 1 - face_pos.1, 3))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(6, (self.size - 1, self.size - 1 - face_pos.0, 3))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(1, (0, self.size - 1 - face_pos.1, 1))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         3 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(4, (face_pos.0, 0, 0))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(5, (self.size - 1 - face_pos.1, 0, 0))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(2, (face_pos.0, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(1, (face_pos.1, 0, 0))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         4 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(6, (0, self.size - 1 - face_pos.0, 1))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(5, (0, face_pos.1, 1))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(3, (face_pos.0, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(1, (self.size - 1, face_pos.1, 3))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         5 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(6, (face_pos.0, 0, 0))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(2, (self.size - 1, self.size - 1 - face_pos.1, 3))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(3, (self.size - 1, self.size - 1 - face_pos.1, 3))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(4, (self.size - 1, face_pos.1, 3))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         6 => match pos.2 {
+    //             0 => {
+    //                 if face_pos.1 + 1 == self.size {
+    //                     self.from_face_test(1, (self.size - 1 - face_pos.0, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0, pos.1 + 1, pos.2)
+    //                 }
+    //             }
+    //             1 => {
+    //                 if face_pos.0 + 1 == self.size {
+    //                     self.from_face_test(2, (self.size - 1 - face_pos.1, 0, 0))?
+    //                 } else {
+    //                     (pos.0 + 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             2 => {
+    //                 if face_pos.1 == 0 {
+    //                     self.from_face_test(5, (face_pos.0, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0, pos.1 - 1, pos.2)
+    //                 }
+    //             }
+    //             3 => {
+    //                 if face_pos.0 == 0 {
+    //                     self.from_face_test(4, (self.size - 1 - face_pos.1, self.size - 1, 2))?
+    //                 } else {
+    //                     (pos.0 - 1, pos.1, pos.2)
+    //                 }
+    //             }
+    //             _ => Err(AocError)?,
+    //         },
+    //         _ => Err(AocError)?,
+    //     })
+    // }
 
     fn travel(
         &self,
-        pos: (usize, usize, usize),
-        moves: &Vec<Move>,
-        step: fn(&Self, (usize, usize, usize)) -> Result<(usize, usize, usize), AocError>,
-    ) -> Result<(usize, usize, usize), AocError> {
+        pos: Pos,
+        moves: &[Move],
+        step: fn(&Self, Pos) -> Result<Pos, AocError>,
+    ) -> Result<Pos, AocError> {
         moves.iter().fold(Ok(pos), |pos, m| {
             let pos = pos?;
             Ok(match m {
@@ -525,42 +524,39 @@ impl Board {
         })
     }
 
-    fn to_face_test(
-        &self,
-        pos: (usize, usize, usize),
-    ) -> Result<(usize, (usize, usize, usize)), AocError> {
-        let new_pos = (pos.0 % self.size, pos.1 % self.size, pos.2);
-        Ok(match (pos.0 / self.size, pos.1 / self.size) {
-            (0, 2) => (1, new_pos),
-            (1, 0) => (2, new_pos),
-            (1, 1) => (3, new_pos),
-            (1, 2) => (4, new_pos),
-            (2, 2) => (5, new_pos),
-            (2, 3) => (6, new_pos),
-            (_, _) => Err(AocError)?,
-        })
-    }
+    // fn to_face_test(
+    //     &self,
+    //     pos: Pos,
+    // ) -> Result<(usize, Pos), AocError> {
+    //     let new_pos = (pos.0 % self.size, pos.1 % self.size, pos.2);
+    //     Ok(match (pos.0 / self.size, pos.1 / self.size) {
+    //         (0, 2) => (1, new_pos),
+    //         (1, 0) => (2, new_pos),
+    //         (1, 1) => (3, new_pos),
+    //         (1, 2) => (4, new_pos),
+    //         (2, 2) => (5, new_pos),
+    //         (2, 3) => (6, new_pos),
+    //         (_, _) => Err(AocError)?,
+    //     })
+    // }
+    //
+    // fn from_face_test(
+    //     &self,
+    //     face: usize,
+    //     pos: Pos,
+    // ) -> Result<Pos, AocError> {
+    //     Ok(match face {
+    //         1 => (pos.0, self.size * 2 + pos.1, pos.2),
+    //         2 => (self.size + pos.0, pos.1, pos.2),
+    //         3 => (self.size + pos.0, self.size + pos.1, pos.2),
+    //         4 => (self.size + pos.0, self.size * 2 + pos.1, pos.2),
+    //         5 => (self.size * 2 + pos.0, self.size * 2 + pos.1, pos.2),
+    //         6 => (self.size * 2 + pos.0, self.size * 3 + pos.1, pos.2),
+    //         _ => Err(AocError)?,
+    //     })
+    // }
 
-    fn from_face_test(
-        &self,
-        face: usize,
-        pos: (usize, usize, usize),
-    ) -> Result<((usize, usize, usize)), AocError> {
-        Ok(match face {
-            1 => (pos.0, self.size * 2 + pos.1, pos.2),
-            2 => (self.size + pos.0, pos.1, pos.2),
-            3 => (self.size + pos.0, self.size + pos.1, pos.2),
-            4 => (self.size + pos.0, self.size * 2 + pos.1, pos.2),
-            5 => (self.size * 2 + pos.0, self.size * 2 + pos.1, pos.2),
-            6 => (self.size * 2 + pos.0, self.size * 3 + pos.1, pos.2),
-            _ => Err(AocError)?,
-        })
-    }
-
-    fn to_face(
-        &self,
-        pos: (usize, usize, usize),
-    ) -> Result<(usize, (usize, usize, usize)), AocError> {
+    fn cvt_to_face(&self, pos: Pos) -> Result<(usize, Pos), AocError> {
         let new_pos = (pos.0 % self.size, pos.1 % self.size, pos.2);
         Ok(match (pos.0 / self.size, pos.1 / self.size) {
             (0, 1) => (1, new_pos),
@@ -573,13 +569,9 @@ impl Board {
         })
     }
 
-    fn from_face(
-        &self,
-        face: usize,
-        pos: (usize, usize, usize),
-    ) -> Result<((usize, usize, usize)), AocError> {
+    fn cvt_from_face(&self, face: usize, pos: Pos) -> Result<Pos, AocError> {
         Ok(match face {
-            1 => (pos.0, self.size * 1 + pos.1, pos.2),
+            1 => (pos.0, self.size + pos.1, pos.2),
             2 => (pos.0, self.size * 2 + pos.1, pos.2),
             3 => (self.size + pos.0, self.size + pos.1, pos.2),
             4 => (self.size * 2 + pos.0, pos.1, pos.2),
@@ -634,7 +626,9 @@ impl Day22 {
                     let distance = if let Some(Move::Walk(distance)) = last {
                         distance * 10 + n
                     } else {
-                        last.map(|last| moves.push(last));
+                        if let Some(last) = last {
+                            moves.push(last)
+                        }
                         n
                     };
                     moves.push(Move::Walk(distance))
@@ -651,7 +645,7 @@ impl Day22 {
     fn part1_impl(
         &self,
         input: &mut dyn io::Read,
-        step: fn(&Board, (usize, usize, usize)) -> Result<(usize, usize, usize), AocError>,
+        step: fn(&Board, Pos) -> Result<Pos, AocError>,
     ) -> BoxResult<Output> {
         let (board, moves) = Self::parse(input)?;
         let pos = board.travel(board.starting_position()?, &moves, step)?;
@@ -661,7 +655,7 @@ impl Day22 {
     fn part2_impl(
         &self,
         input: &mut dyn io::Read,
-        step: fn(&Board, (usize, usize, usize)) -> Result<(usize, usize, usize), AocError>,
+        step: fn(&Board, Pos) -> Result<Pos, AocError>,
     ) -> BoxResult<Output> {
         let (board, moves) = Self::parse(input)?;
         let pos = board.travel(board.starting_position()?, &moves, step)?;

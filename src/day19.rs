@@ -57,7 +57,7 @@ impl FromStr for Blueprint {
     type Err = Box<dyn error::Error>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim().replace(":", "");
+        let s = s.trim().replace(':', "");
         let mut tokens = s.split_whitespace();
         let id = tokens.nth(1).ok_or(AocError)?.parse::<usize>()?;
         let ore_ore = tokens.nth(4).ok_or(AocError)?.parse::<usize>()?;
@@ -82,7 +82,7 @@ impl FromStr for Blueprint {
                     obsidian: geode_obsidian,
                 },
             };
-            println!("{:?}", blueprint);
+            //println!("{:?}", blueprint);
             Ok(blueprint)
         }
     }
@@ -91,21 +91,21 @@ impl FromStr for Blueprint {
 impl Blueprint {
     fn process(&self, n: usize, do_quality: bool) -> BoxResult<usize> {
         let inventories = (0..n).fold(
-            (iter::once(Inventory {
+            iter::once(Inventory {
                 ore_robot: 1,
                 ..Default::default()
             })
-            .collect::<HashSet<_>>()),
+            .collect::<HashSet<_>>(),
             |inventories, _t| {
-                println!("{}, {:?}", _t, inventories.len());
+                // println!("{}, {:?}", _t, inventories.len());
                 let inventories: HashSet<_> = inventories
                     .into_iter()
                     .flat_map(|inventory| inventory.spend(self).into_iter())
                     .collect();
-                println!(
-                    "{:?}",
-                    inventories.iter().map(|inventory| inventory.geode).max()
-                );
+                // println!(
+                //     "{:?}",
+                //     inventories.iter().map(|inventory| inventory.geode).max()
+                // );
                 inventories
             },
         );
@@ -115,7 +115,7 @@ impl Blueprint {
                 .map(|Inventory { geode, .. }| geode)
                 .max()
                 .ok_or(AocError)?;
-        println!("{}", rv);
+        // println!("{}", rv);
         Ok(rv)
     }
 }
@@ -227,16 +227,6 @@ impl Inventory {
 }
 
 impl Day19 {
-    fn process(input: &mut dyn io::Read, n: usize, do_quality: bool) -> BoxResult<Output> {
-        io::BufReader::new(input)
-            .lines()
-            .map(|l| l.map_err(|e| e.into()))
-            .map(|l: BoxResult<_>| {
-                l.and_then(|l| l.as_str().parse::<Blueprint>()?.process(n, do_quality))
-            })
-            .sum()
-    }
-
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         io::BufReader::new(input)
             .lines()

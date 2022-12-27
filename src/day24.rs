@@ -1,6 +1,6 @@
 use crate::day::*;
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::iter;
 use std::ops::ControlFlow::{Break, Continue};
 
@@ -125,21 +125,19 @@ impl Board {
             .map(|blizzard| blizzard.next(self))
             .collect::<Vec<_>>();
         //println!("blizzards {:?}", blizzards);
-        let next = neighbours
+        neighbours
             .into_iter()
             .filter(|expedition| {
-                blizzards
+                !blizzards
                     .iter()
-                    .find(|blizzard| blizzard.coord() == *expedition)
-                    .is_none()
+                    .any(|blizzard| blizzard.coord() == *expedition)
             })
             .map(|expedition| Board {
                 blizzards: blizzards.to_owned(),
                 expedition,
                 ..*self
             })
-            .collect::<Vec<_>>();
-        next
+            .collect::<Vec<_>>()
     }
 
     fn is_at_the_entrance(&self) -> bool {
@@ -154,40 +152,40 @@ impl Board {
             }
     }
 
-    fn print(&self) {
-        println!("#.{}", "#".repeat(self.width));
-        for row in 1..=self.height {
-            print!("#");
-            for column in 1..=self.width {
-                let coord = Coord { row, column };
-                let blizzards = self
-                    .blizzards
-                    .iter()
-                    .filter(|blizzard| blizzard.coord() == coord)
-                    .collect::<Vec<_>>();
-                print!(
-                    "{}",
-                    match blizzards.len() {
-                        0 =>
-                            if self.expedition == coord {
-                                'E'
-                            } else {
-                                '.'
-                            },
-                        1 => match blizzards[0] {
-                            Blizzard::LeftHorizontal(_) => '<',
-                            Blizzard::RightHorizontal(_) => '>',
-                            Blizzard::UpVertical(_) => '^',
-                            Blizzard::DownVertical(_) => 'v',
-                        },
-                        n => (n as u8 + b'0') as char,
-                    }
-                );
-            }
-            println!("#");
-        }
-        println!("{}.#", "#".repeat(self.width));
-    }
+    //     fn print(&self) {
+    //         println!("#.{}", "#".repeat(self.width));
+    //         for row in 1..=self.height {
+    //             print!("#");
+    //             for column in 1..=self.width {
+    //                 let coord = Coord { row, column };
+    //                 let blizzards = self
+    //                     .blizzards
+    //                     .iter()
+    //                     .filter(|blizzard| blizzard.coord() == coord)
+    //                     .collect::<Vec<_>>();
+    //                 print!(
+    //                     "{}",
+    //                     match blizzards.len() {
+    //                         0 =>
+    //                             if self.expedition == coord {
+    //                                 'E'
+    //                             } else {
+    //                                 '.'
+    //                             },
+    //                         1 => match blizzards[0] {
+    //                             Blizzard::LeftHorizontal(_) => '<',
+    //                             Blizzard::RightHorizontal(_) => '>',
+    //                             Blizzard::UpVertical(_) => '^',
+    //                             Blizzard::DownVertical(_) => 'v',
+    //                         },
+    //                         n => (n as u8 + b'0') as char,
+    //                     }
+    //                 );
+    //             }
+    //             println!("#");
+    //         }
+    //         println!("{}.#", "#".repeat(self.width));
+    //     }
 }
 
 impl Day24 {

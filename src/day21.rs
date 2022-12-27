@@ -136,13 +136,11 @@ impl Monkey {
                 if let Some(mut path) = left.find_humn(choir)? {
                     path.push(true);
                     Some(path)
+                } else if let Some(mut path) = right.find_humn(choir)? {
+                    path.push(false);
+                    Some(path)
                 } else {
-                    if let Some(mut path) = right.find_humn(&choir)? {
-                        path.push(false);
-                        Some(path)
-                    } else {
-                        None
-                    }
+                    None
                 }
             }
         })
@@ -184,12 +182,10 @@ impl Monkey {
                     }
                 },
             )?
+        } else if self.name == "humn" {
+            n
         } else {
-            if self.name == "humn" {
-                n
-            } else {
-                Err(AocError)?
-            }
+            Err(AocError)?
         })
     }
 }
@@ -201,7 +197,7 @@ struct Choir {
 
 impl Choir {
     fn from(input: &mut dyn io::Read) -> BoxResult<Choir> {
-        Ok(io::BufReader::new(input)
+        io::BufReader::new(input)
             .lines()
             .map(|l| l.map_err(|e| e.into()))
             .map(|l: BoxResult<_>| {
@@ -211,7 +207,7 @@ impl Choir {
                 })
             })
             .collect::<Result<HashMap<_, _>, _>>()
-            .map(|monkeys| Choir { monkeys })?)
+            .map(|monkeys| Choir { monkeys })
     }
 
     fn yell(&self, name: &str) -> BoxResult<Output> {
@@ -222,11 +218,11 @@ impl Choir {
 impl Day21 {
     fn part1_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
         let choir = Choir::from(input)?;
-        Ok(choir.yell("root")?)
+        choir.yell("root")
     }
 
     fn part2_impl(&self, input: &mut dyn io::Read) -> BoxResult<Output> {
-        let mut choir = Choir::from(input)?;
+        let choir = Choir::from(input)?;
         Self::deduce(choir)
     }
 
